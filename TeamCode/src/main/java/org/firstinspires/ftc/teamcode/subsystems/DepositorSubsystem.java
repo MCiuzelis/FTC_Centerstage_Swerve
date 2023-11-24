@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import static com.arcrobotics.ftclib.util.MathUtils.clamp;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -28,14 +31,9 @@ public class DepositorSubsystem extends SubsystemBase {
     boolean isWithinToleranceLow = false;
     boolean isWithinToleranceHigh = false;
     //0.003d
-    public static double P = 0.0d;
-    //0.00004d
-    public static double I = 0.0d;
-    public static double D = 0.0d;
-    public static double F = 0.0d;
+
 
     private int targetMotorPosition;
-    private int currentMotorPosition;
     double lastError = 0;
     double integralSum = 0;
     //endregion
@@ -57,10 +55,10 @@ public class DepositorSubsystem extends SubsystemBase {
         depositorProbeState = state;
         switch (state){
             case DEPOSIT:
-                setDepositorServos(Constants.DepositorDepositPosition);
+                setDepositorServos(DepositorDepositPosition);
                 break;
             case PICKUP:
-                setDepositorServos(Constants.DepositorPickupPosition);
+                setDepositorServos(DepositorPickupPosition);
                 break;
         }
         if (DEBUG_MODE){
@@ -94,13 +92,21 @@ public class DepositorSubsystem extends SubsystemBase {
         target_position = state;
         switch (state){
             case LOWPOS:
-                targetMotorPosition = Constants.LiftLowPosition;
+                targetMotorPosition = LiftLowPosition;
                 break;
             case HIGHPOS:
-                targetMotorPosition = Constants.LiftHighPosition;
+                targetMotorPosition = LiftHighPosition;
                 break;
         }
     }
+
+
+    public void update(int offset){
+        this.targetMotorPosition += offset;
+        targetMotorPosition = clamp(targetMotorPosition, LiftLowPosition, LiftHighPosition);
+    }
+
+
     public void update(float power){
         isManualControl = true;
         robot.depositorSlideMotor.setPower(power);
@@ -124,21 +130,20 @@ public class DepositorSubsystem extends SubsystemBase {
             AutomatedLiftMovement();
         }
     }
+
+
     public void AutomatedLiftMovement(){
-        currentMotorPosition = robot.depositorSlideMotor.getCurrentPosition();
+        int currentMotorPosition = robot.depositorSlideMotor.getCurrentPosition();
         double error = targetMotorPosition - currentMotorPosition;
         double derivative = (error - lastError) / timer.seconds();
         integralSum = integralSum + (error * timer.seconds());
 
-        if (robot.depositorSlideMotor.getCurrent(CurrentUnit.AMPS) > 10) {
-            //robot.depositorSlideMotor.setPower(0);
-        }
-        if (currentMotorPosition > Constants.LiftHighPosition - Constants.MaxAllowedLiftError){
+        if (currentMotorPosition > LiftHighPosition - MaxAllowedLiftError){
             actual_position = SLIDE_ACTUAL_POSITION.HIGHPOS;
             isWithinToleranceHigh = true;
 
         }
-        else if (currentMotorPosition < Constants.LiftLowPosition + Constants.MaxAllowedLiftError){
+        else if (currentMotorPosition < LiftLowPosition + MaxAllowedLiftError){
             actual_position = SLIDE_ACTUAL_POSITION.LOWPOS;
             isWithinToleranceLow = true;
         }
@@ -147,7 +152,7 @@ public class DepositorSubsystem extends SubsystemBase {
             isWithinToleranceLow = false;
         }
 
-        double power = (P * error) + (I * integralSum) + (D * derivative);
+        double power = (LiftKp * error) + (LiftKi * integralSum) + (LiftKd * derivative) + LiftKf;
         robot.depositorSlideMotor.setPower(power);
 
         if (DEBUG_MODE) {

@@ -12,7 +12,9 @@ import org.firstinspires.ftc.teamcode.commands.SetDepositorProbePositionCommand;
 import org.firstinspires.ftc.teamcode.commands.SetIntakeBroomCommand;
 import org.firstinspires.ftc.teamcode.commands.SetIntakeHingePositionCommand;
 import org.firstinspires.ftc.teamcode.commands.SetLiftPositionCommand;
+import org.firstinspires.ftc.teamcode.commands.SetToDepositingPosition;
 import org.firstinspires.ftc.teamcode.commands.TransferCommand;
+import org.firstinspires.ftc.teamcode.hardware.Constants;
 import org.firstinspires.ftc.teamcode.hardware.GamePad;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.DepositorSubsystem;
@@ -36,7 +38,6 @@ public class MainOpMode extends CommandOpMode {
         intakeSubsystem = new IntakeSubsystem(robot, telemetry, true);
         depositorSubsystem = new DepositorSubsystem(robot, telemetry, true);
         drivetrainSubsystem = new DrivetrainSubsystem(robot, telemetry, true);
-
         new ResetDriveEncodersCommand(drivetrainSubsystem);
 
         gamePad = new GamePad(gamepad1);
@@ -47,10 +48,10 @@ public class MainOpMode extends CommandOpMode {
                 .toggleWhenPressed(new SetDepositorPinCommand(depositorSubsystem, DepositorSubsystem.DEPOSITOR_PIN_STATE.RELEASE), new SetDepositorPinCommand(depositorSubsystem, DepositorSubsystem.DEPOSITOR_PIN_STATE.HOLD));
         //Lower linear slides
         gamePad.getGamepadButton(GamepadKeys.Button.DPAD_DOWN)
-                .whileHeld(() -> new SetLiftPositionCommand(depositorSubsystem, 0.5f, false)).whenReleased(() -> schedule(new InstantCommand(depositorSubsystem::StopSlideMotor, depositorSubsystem)));
+                .whenPressed(() -> new SetLiftPositionCommand(depositorSubsystem, 100));
         //Raise linear slides
         gamePad.getGamepadButton(GamepadKeys.Button.DPAD_UP)
-                .whileHeld(() -> new SetLiftPositionCommand(depositorSubsystem, 0.5f, true)).whenReleased(() -> schedule(new InstantCommand(depositorSubsystem::StopSlideMotor, depositorSubsystem)));
+                .whenPressed(() -> new SetLiftPositionCommand(depositorSubsystem, -100));
         //Toggle depositor probe: DPAD_LEFT -> low | DPAD_RIGHT -> high
         gamePad.getGamepadButton(GamepadKeys.Button.DPAD_LEFT)
                 .whenPressed(() -> schedule(new SetDepositorProbePositionCommand(depositorSubsystem, DepositorSubsystem.DEPOSITOR_PROBE_STATE.DEPOSIT)));
@@ -69,7 +70,7 @@ public class MainOpMode extends CommandOpMode {
                 .whenPressed(() -> schedule(new SetLiftPositionCommand(depositorSubsystem, DepositorSubsystem.SLIDE_TARGET_POSITION.LOWPOS)));
 
         gamePad.getGamepadButton(GamepadKeys.Button.Y)
-                .whenPressed(() -> schedule(new SetLiftPositionCommand(depositorSubsystem, DepositorSubsystem.SLIDE_TARGET_POSITION.HIGHPOS)));
+                .whenPressed(() -> schedule(new SetToDepositingPosition(depositorSubsystem)));
 
         gamePad.getGamepadButton(GamepadKeys.Button.X)
                 .whenPressed(() -> schedule(new TransferCommand(intakeSubsystem, depositorSubsystem)));
@@ -80,6 +81,10 @@ public class MainOpMode extends CommandOpMode {
     @Override
     public void run(){
         super.run();
-        drivetrainSubsystem.Drive(gamePad);
+        drivetrainSubsystem.Drive(gamePad.getJoystickVector(), gamePad.turnSpeed());
+        if(gamePad.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER) > 0.5){
+            new InstantCommand(()-> robot.planeServo.setPosition(Constants.planeLaunchPosition));
+        }
+        else new InstantCommand(()-> robot.planeServo.setPosition(Constants.planeLockPosition));
     }
 }

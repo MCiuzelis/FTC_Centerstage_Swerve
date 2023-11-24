@@ -1,11 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.K_rotation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.backLocation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.frontLeftLocation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.frontRightLocation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.highestPossibleMotorVelocity;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.finalAllMotorVelocityMultiplier;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -40,9 +35,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
         Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.limitB, 115);
 
         //Start Multithreaded calibration
-        FrontLeft.start();
-        FrontRight.start();
-        Back.start();
+        //FrontLeft.start();
+        //FrontRight.start();
+        //Back.start();
     }
 
     public void ResetAllEncoders(){
@@ -51,11 +46,10 @@ public class DrivetrainSubsystem extends SubsystemBase {
         Back.resetModuleEncoders();
     }
 
-    public void Drive(GamePad gamePad) {
+    public void Drive(Vector2d joystickDrive, double turnSpeed) {
 
-        Vector2d joystick = gamePad.getJoystickVector();
-        double driveSpeed = joystick.magnitude();
-        double driveAngle = joystick.angle();
+        double driveSpeed = joystickDrive.magnitude();
+        double driveAngle = joystickDrive.angle();
         telemetry.addData("magnitude", driveSpeed);
         telemetry.addData("angle", driveAngle);
 
@@ -63,7 +57,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 driveSpeed * Math.sin(driveAngle) * highestPossibleMotorVelocity,
                 driveSpeed * Math.cos(driveAngle) * highestPossibleMotorVelocity,
-                gamePad.turnSpeed() * K_rotation,
+                turnSpeed * K_rotation,
                                     robot.imu.getRotation2d()
         );
 
@@ -78,7 +72,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
         FrontLeft.updateTurningAndDrivingSpeeds(frontLeft.angle, frontLeft.speedMetersPerSecond);
         FrontRight.updateTurningAndDrivingSpeeds(frontRight.angle, frontRight.speedMetersPerSecond);
         Back.updateTurningAndDrivingSpeeds(back.angle, back.speedMetersPerSecond);
-
 
         double frontLeftModuleAvailableVelocity = highestPossibleMotorVelocity - Math.abs(FrontLeft.turnVelocityTicks);
         double frontRightModuleAvailableVelocity = highestPossibleMotorVelocity - Math.abs(FrontRight.turnVelocityTicks);
@@ -115,5 +108,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
         robot.FRB_Motor.setVelocity((FrontRight.turnVelocityTicks - frontRightModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
         robot.BT_Motor.setVelocity((Back.turnVelocityTicks + backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
         robot.BB_Motor.setVelocity((Back.turnVelocityTicks - backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+    }
+
+    public void Calibrate(){
+        FrontLeft.start();
+        FrontRight.start();
+        Back.start();
+    }
+
+    public void turnRobotToAngle (double angleDegrees){
+        Drive(new Vector2d(0, 0), AutonomousTurningKp * (angleDegrees - robot.imu.getHeading()));
     }
 }

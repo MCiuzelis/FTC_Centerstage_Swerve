@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
+import com.arcrobotics.ftclib.command.button.Button;
+import com.arcrobotics.ftclib.command.button.GamepadButton;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
+import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
@@ -24,4 +27,5 @@ public class GamePad extends GamepadEx {
         vector2d = vector2d.div(maximumNotScaledDownSpeedInARectangularContour);
         return vector2d;
     }
+
 }

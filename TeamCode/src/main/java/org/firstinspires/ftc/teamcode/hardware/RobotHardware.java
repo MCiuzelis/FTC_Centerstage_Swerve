@@ -20,7 +20,7 @@ public class RobotHardware {
     Telemetry telemetry;
     //Motors and servos
 
-    public Servo intakeHingeServo, depositorPinServo, depositorLeftServo, depositorRightServo;
+    public Servo intakeHingeServo, depositorPinServo, depositorLeftServo, depositorRightServo, planeServo;
 
     public DcMotorEx depositorSlideMotor, intakeBroomMotor, FLT_Motor, FLB_Motor, FRT_Motor, FRB_Motor, BT_Motor, BB_Motor;
 
@@ -44,7 +44,7 @@ public class RobotHardware {
         //region Motors
 
         intakeBroomMotor = initMotor(hw, "eh2", DcMotorSimple.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.FLOAT);
-        depositorSlideMotor = initMotor(hw, "ch2", DcMotorSimple.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        depositorSlideMotor = initMotor(hw, "ch2", DcMotorSimple.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLT_Motor = initMotor(hw, "ch1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLB_Motor = initMotor(hw, "ch0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FRT_Motor = initMotor(hw, "eh0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -64,6 +64,8 @@ public class RobotHardware {
         depositorRightServo = initServo(hw,"EHservo1", Servo.Direction.FORWARD);
         depositorPinServo = initServo(hw,"EHservo0", Servo.Direction.FORWARD);
         intakeHingeServo = initServo(hw,"CHservo3", Servo.Direction.FORWARD);
+        planeServo = initServo(hw, "EHservo5", Servo.Direction.FORWARD);
+
 
         //endregion
         //region Digital

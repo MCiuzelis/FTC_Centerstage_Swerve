@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.kd;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.ki;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.kp;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKd;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKi;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKp;
 
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -68,7 +68,7 @@ public class SwerveModule extends Thread{
         timer.reset();
         lastError = error;
 
-        turnVelocityTicks = (kp * error) + (ki * integralSum) + (kd * derivative);
+        turnVelocityTicks = (DriveBaseTurnKp * error) + (DriveBaseTurnKi * integralSum) + (DriveBaseTurnKd * derivative);
         turnVelocityTicks = clamp(turnVelocityTicks, -maxTurningVelocity, maxTurningVelocity);
     }
 

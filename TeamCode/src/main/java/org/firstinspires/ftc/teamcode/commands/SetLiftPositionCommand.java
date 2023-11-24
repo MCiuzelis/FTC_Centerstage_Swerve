@@ -13,4 +13,7 @@ public class SetLiftPositionCommand extends InstantCommand {
             depositor.update(isReversed ? -power : power);
         });
     }
+    public SetLiftPositionCommand(DepositorSubsystem depositor, int offset){
+        super(() -> depositor.update(offset));
+    }
 }
