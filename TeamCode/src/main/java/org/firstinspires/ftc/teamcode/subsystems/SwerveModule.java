@@ -5,11 +5,14 @@ import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKd;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKi;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKp;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.Constants;
 
 public class SwerveModule extends Thread{
@@ -28,38 +31,48 @@ public class SwerveModule extends Thread{
     double driveSpeedMultiplier;
     public ElapsedTime timer = new ElapsedTime();
 
+    Telemetry telemetry;
+
     public double lastError = 0;
     public double integralSum = 0;
 
-    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, TouchSensor limitSwitch, int offset){
+    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, TouchSensor limitSwitch, int offset, Telemetry telemetry){
         this.TopMotor = TopMotor;
         this.BottomMotor = BottomMotor;
         this.limitSwitch = limitSwitch;
         this.offset = offset;
-
+        this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
     }
 
 
     public void updateTurningAndDrivingSpeeds(Rotation2d targetAngle, double moduleSpeed){
         driveSpeedMultiplier = 1;
         double currentAngle = ((TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / (2f * ticksInOneRad));
-        currentAngle = clampAngleUsingTrigReduction(currentAngle, 2d * Math.PI, -2d * Math.PI);
+        currentAngle = clampAngleAndTranslateRange(currentAngle);
 
-        if (currentAngle * targetAngle.getRadians() < 0){
-            if (currentAngle < 0){
-                currentAngle += Math.PI; //aka 180 degrees
-            }
-            else{
-                currentAngle -= Math.PI; //aka 180 degrees
-            }
-            driveSpeedMultiplier *= -1;
-        }
+        telemetry.addData("currentAnglebeforescuff", Math.toDegrees(currentAngle));
+
+
+//        if (currentAngle < Math.toRadians(-90) && targetAngle.getRadians() > Math.toRadians(90)){
+//            currentAngle += Math.toRadians(360);
+//        }
+//
+//        else if (currentAngle > Math.toRadians(90) && targetAngle.getRadians() < Math.toRadians(-90)){
+//            currentAngle -= Math.toRadians(360);
+//        }
 
         double error = targetAngle.getRadians() - currentAngle;
-        if (error > Math.toRadians(95)){
-            error = -(Math.PI - error);
-            driveSpeedMultiplier *= -1;
+
+        if (Math.abs(error) > Math.toRadians(200)){     //teoriskai tuetu 180 but
+            currentAngle = currentAngle - Math.signum(currentAngle) * Math.toRadians(360);
+            error = targetAngle.getRadians() - currentAngle;
         }
+
+
+//        if (error > Math.toRadians(105)){
+//            error = -(Math.PI - error);
+//            driveSpeedMultiplier *= -1;
+//        }
 
         driveSpeedMultiplier *= moduleSpeed;
 
@@ -70,6 +83,10 @@ public class SwerveModule extends Thread{
 
         turnVelocityTicks = (DriveBaseTurnKp * error) + (DriveBaseTurnKi * integralSum) + (DriveBaseTurnKd * derivative);
         turnVelocityTicks = clamp(turnVelocityTicks, -maxTurningVelocity, maxTurningVelocity);
+
+        telemetry.addData("current", Math.toDegrees(currentAngle));
+        telemetry.addData("target", targetAngle.getDegrees());
+        telemetry.addData("error", error);
     }
 
     public void CalibrateModule(){
@@ -157,12 +174,19 @@ public class SwerveModule extends Thread{
         timer.reset();
     }
 
-    public double clampAngleUsingTrigReduction(double angle, double ceiling, double floor){
-        while (angle > ceiling) {
-            angle -= ceiling;
+    public double clampAngleAndTranslateRange(double angle){
+        while (angle >= 2d * Math.PI) {
+            angle -= 2d * Math.PI;
         }
-        while (angle < floor) {
-            angle -= floor;
+        while (angle <= -2d * Math.PI) {
+            angle += 2d * Math.PI;
+        }
+
+        if (angle > Math.PI){
+            angle = 2d * Math.PI - angle;
+        }
+        if (angle < -Math.PI){
+            angle = 2d * Math.PI + angle;
         }
         return angle;
     }

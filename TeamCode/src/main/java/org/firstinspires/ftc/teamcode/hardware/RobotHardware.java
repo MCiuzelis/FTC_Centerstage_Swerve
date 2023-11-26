@@ -1,19 +1,15 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
+import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
 import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class RobotHardware {
 
@@ -43,8 +39,8 @@ public class RobotHardware {
         //init() connected devices
         //region Motors
 
-        intakeBroomMotor = initMotor(hw, "eh2", DcMotorSimple.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.FLOAT);
-        depositorSlideMotor = initMotor(hw, "ch2", DcMotorSimple.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        intakeBroomMotor = initMotor(hw, "eh2", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.FLOAT);
+        depositorSlideMotor = initMotor(hw, "ch2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLT_Motor = initMotor(hw, "ch1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLB_Motor = initMotor(hw, "ch0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FRT_Motor = initMotor(hw, "eh0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -60,17 +56,19 @@ public class RobotHardware {
         //depositorPinServo = initServo(hw,"EHservo0",false,0,1,AngleUnit.DEGREES);
         //intakeHingeServo = initServo(hw,"CHservo3",false,0,1,AngleUnit.DEGREES);
 //
-        depositorLeftServo = initServo(hw,"EHservo2", Servo.Direction.FORWARD);
         depositorRightServo = initServo(hw,"EHservo1", Servo.Direction.FORWARD);
-        depositorPinServo = initServo(hw,"EHservo0", Servo.Direction.FORWARD);
-        intakeHingeServo = initServo(hw,"CHservo3", Servo.Direction.FORWARD);
-        planeServo = initServo(hw, "EHservo5", Servo.Direction.FORWARD);
+        depositorLeftServo = initServo(hw,"EHservo0", Servo.Direction.REVERSE);
+        depositorPinServo = initServo(hw,"EHservo2", Servo.Direction.REVERSE);
+        intakeHingeServo = initServo(hw,"CHservo3", Servo.Direction.REVERSE);
+        planeServo = initServo(hw, "EHservo4", Servo.Direction.REVERSE);
+
+        planeServo.setPosition(planeLockPosition);
 
 
         //endregion
         //region Digital
 
-        limitIntake = hw.get(TouchSensor.class, "CHdigital2");
+        limitIntake = hw.get(TouchSensor.class, "CHdigital1");
         limitFL = hw.get(TouchSensor.class,"CHdigital2");
         limitFR = hw.get(TouchSensor.class,"EHdigital0");
         limitB = hw.get(TouchSensor.class,"EHdigital2");
@@ -90,18 +88,9 @@ public class RobotHardware {
         return motor;
     }
 
-    private ServoEx initServo(HardwareMap hw, String servoPort, boolean isInverted, double min, double max, AngleUnit angleUnit) {
-        ServoEx servo = hw.get(ServoEx.class, servoPort);
-        servo.setInverted(isInverted);
-        servo.setRange(min, max, angleUnit);
-        return servo;
-    }
-
     private Servo initServo (HardwareMap hw, String servoPort, Servo.Direction direction){
         Servo servo = hw.get(Servo.class, servoPort);
         servo.setDirection(direction);
         return servo;
     }
-
-
 }

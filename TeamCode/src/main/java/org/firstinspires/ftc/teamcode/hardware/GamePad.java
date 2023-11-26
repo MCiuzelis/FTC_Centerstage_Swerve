@@ -1,18 +1,16 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
-import com.arcrobotics.ftclib.command.button.Button;
-import com.arcrobotics.ftclib.command.button.GamepadButton;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
-import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
 public class GamePad extends GamepadEx {
+
     public GamePad(Gamepad gamepad) {
         super(gamepad);
     }
 
-    public double turnSpeed(){
+    public double getTurnSpeed(){
         return -super.getRightX();
     }
 
@@ -25,6 +23,7 @@ public class GamePad extends GamepadEx {
         double PositiveDriveAngle = Math.abs(vector2d.angle());
         double maximumNotScaledDownSpeedInARectangularContour = (PositiveDriveAngle >= Math.toRadians(45) && PositiveDriveAngle <= Math.toRadians(135)) ? Math.hypot(left_stick_x, 1) : Math.hypot(left_stick_y, 1);
         vector2d = vector2d.div(maximumNotScaledDownSpeedInARectangularContour);
+        vector2d.scale(vector2d.magnitude());
         return vector2d;
     }
 

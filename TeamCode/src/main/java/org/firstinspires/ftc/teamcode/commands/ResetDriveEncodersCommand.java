@@ -6,6 +6,6 @@ import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
 public class ResetDriveEncodersCommand extends InstantCommand {
     public ResetDriveEncodersCommand(DrivetrainSubsystem drive){
-        super(() -> drive.ResetAllEncoders());
+        super(drive::ResetAllEncoders);
     }
 }

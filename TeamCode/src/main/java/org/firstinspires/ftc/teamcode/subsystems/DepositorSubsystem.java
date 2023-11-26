@@ -30,6 +30,9 @@ public class DepositorSubsystem extends SubsystemBase {
     public boolean isManualControl = false;
     boolean isWithinToleranceLow = false;
     boolean isWithinToleranceHigh = false;
+    boolean isWithinToleranceMid = false;
+    boolean isWithinToleranceTransfer = false;
+    boolean isWithinToleranceSafeToDeposit = false;
     //0.003d
 
 
@@ -57,6 +60,8 @@ public class DepositorSubsystem extends SubsystemBase {
             case DEPOSIT:
                 setDepositorServos(DepositorDepositPosition);
                 break;
+            case GOOFY:
+                setDepositorServos(DepositorGoofyPosition);
             case PICKUP:
                 setDepositorServos(DepositorPickupPosition);
                 break;
@@ -91,11 +96,20 @@ public class DepositorSubsystem extends SubsystemBase {
         isManualControl = false;
         target_position = state;
         switch (state){
+            case TRANSFERPOS:
+                targetMotorPosition = LiftTransferPosition;
+                break;
             case LOWPOS:
                 targetMotorPosition = LiftLowPosition;
                 break;
+            case MIDPOS:
+                targetMotorPosition = LiftMidPosition;
+                break;
             case HIGHPOS:
                 targetMotorPosition = LiftHighPosition;
+                break;
+            case SAFETODEPOSITPOS:
+                targetMotorPosition = LiftSafeToDepositPosition;
                 break;
         }
     }
@@ -141,15 +155,30 @@ public class DepositorSubsystem extends SubsystemBase {
         if (currentMotorPosition > LiftHighPosition - MaxAllowedLiftError){
             actual_position = SLIDE_ACTUAL_POSITION.HIGHPOS;
             isWithinToleranceHigh = true;
-
         }
-        else if (currentMotorPosition < LiftLowPosition + MaxAllowedLiftError){
+        else if (currentMotorPosition < LiftLowPosition + MaxAllowedLiftError && currentMotorPosition > LiftLowPosition - MaxAllowedLiftError){
             actual_position = SLIDE_ACTUAL_POSITION.LOWPOS;
             isWithinToleranceLow = true;
+        }
+        else if (currentMotorPosition > LiftMidPosition -MaxAllowedLiftError && currentMotorPosition < LiftMidPosition + MaxAllowedLiftError){
+            actual_position = SLIDE_ACTUAL_POSITION.MIDPOS;
+            isWithinToleranceMid = true;
+        }
+        else if(currentMotorPosition < LiftTransferPosition + MaxAllowedLiftError){
+            actual_position = SLIDE_ACTUAL_POSITION.TRANSFERPOS;
+            isWithinToleranceSafeToDeposit = true;
+            isWithinToleranceTransfer=true;
+        }
+        else if (currentMotorPosition < LiftSafeToDepositPosition + MaxAllowedLiftError){
+            actual_position = SLIDE_ACTUAL_POSITION.SAFETODEPOSITPOS;
+            isWithinToleranceSafeToDeposit = true;
         }
         else {
             isWithinToleranceHigh = false;
             isWithinToleranceLow = false;
+            isWithinToleranceMid = false;
+            isWithinToleranceTransfer = false;
+            isWithinToleranceSafeToDeposit = false;
         }
 
         double power = (LiftKp * error) + (LiftKi * integralSum) + (LiftKd * derivative) + LiftKf;
@@ -175,9 +204,13 @@ public class DepositorSubsystem extends SubsystemBase {
 
     public boolean WithinToleranceLow(){return isWithinToleranceLow;}
     public boolean WithinToleranceHigh(){return isWithinToleranceHigh;}
+    public boolean WithinToleranceTransfer(){return isWithinToleranceTransfer;}
+    public boolean WithinToleranceMid(){return isWithinToleranceMid;}
+    public boolean WithinToleranceSafeToDeposit(){return isWithinToleranceSafeToDeposit;}
 
     public enum DEPOSITOR_PROBE_STATE{
         PICKUP,
+        GOOFY,
         DEPOSIT
     }
     public enum DEPOSITOR_PIN_STATE{
@@ -185,11 +218,17 @@ public class DepositorSubsystem extends SubsystemBase {
         HOLD
     }
     public enum SLIDE_TARGET_POSITION {
+        TRANSFERPOS,
         LOWPOS,
-        HIGHPOS
+        MIDPOS,
+        HIGHPOS,
+        SAFETODEPOSITPOS
     }
     public enum SLIDE_ACTUAL_POSITION {
         LOWPOS,
-        HIGHPOS
+        HIGHPOS,
+        MIDPOS,
+        TRANSFERPOS,
+        SAFETODEPOSITPOS
     }
 }

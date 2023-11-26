@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.commands.ResetDriveEncodersCommand;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
@@ -9,8 +10,8 @@ import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
 @Autonomous(name = "MainAutonomous", group = "OpMode")
 public class MainAutonomous extends CommandOpMode {
-    public DrivetrainSubsystem drivetrainSubsystem;
     private final RobotHardware robot = RobotHardware.getInstance();
+    ElapsedTime timer = new ElapsedTime();
 
 
 
@@ -18,13 +19,16 @@ public class MainAutonomous extends CommandOpMode {
     public void initialize() {
 
         robot.init(hardwareMap, telemetry);
-        drivetrainSubsystem = new DrivetrainSubsystem(robot, telemetry, true);
-        new ResetDriveEncodersCommand(drivetrainSubsystem);
+        timer.reset();
     }
 
     @Override
     public void run(){
         super.run();
-        drivetrainSubsystem.turnRobotToAngle(10);
+
+        while (timer.seconds() < 5) {
+            robot.intakeBroomMotor.setPower(1);
+        }
+        robot.intakeBroomMotor.setPower(0);
     }
 }
