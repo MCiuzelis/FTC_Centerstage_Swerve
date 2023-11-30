@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.finalAllMotorVelocityMultiplier;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -11,6 +10,7 @@ import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.SwerveDriveKinematics;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.SwerveModuleState;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
@@ -27,6 +27,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Rotation2d backModuleAngle = Rotation2d.fromDegrees(0);
 
     double targetRobotAngle = 0;
+    double prevFrontLeftDriveVelocity = 0;
+    double prevFrontRightDriveVelocity = 0;
+    double prevBackDriveVelocity = 0;
+
+    ElapsedTime angleHoldingTimer;
 
     SwerveModule FrontLeft, FrontRight, Back;
     SwerveDriveKinematics m_kinematics = new SwerveDriveKinematics(frontLeftLocation, frontRightLocation, backLocation);
@@ -39,6 +44,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
         FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.limitFL, -137, telemetry);
         FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.limitFR, 141, telemetry);
         Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.limitB, 115, telemetry);
+        angleHoldingTimer = new ElapsedTime();
     }
 
     public void ResetAllEncoders(){
@@ -47,7 +53,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
         Back.resetModuleEncoders();
     }
 
-    public void Drive(Vector2d joystickDrive, double turnSpeed) {
+    public void Drive(Vector2d joystickDrive, double joystickTurnSpeed) {
 
         double driveSpeed = joystickDrive.magnitude();
         double driveAngle = joystickDrive.angle();
@@ -55,16 +61,31 @@ public class DrivetrainSubsystem extends SubsystemBase {
         Rotation2d imuAngle = robot.imu.getRotation2d();
         double turnPower;
 
-        if (turnSpeed == 0){
-            turnPower = robotAngleHoldingKp * (targetRobotAngle - imuAngle.getRadians());
+        if (joystickTurnSpeed == 0) {
+            if (angleHoldingTimer.milliseconds() > angleHoldingDelayMs) {
+                double error = targetRobotAngle - imuAngle.getRadians();
+                if (Math.abs(error) > Math.toRadians(180)) {
+                    error += (-Math.signum(error) * Math.toRadians(360));
+                }
+                if (Math.abs(error) < allowedRobotAngleError){
+                    turnPower = 0;
+                }
+                else{
+                    turnPower = robotAngleHoldingKp * error;
+                }
+                telemetry.addLine("maintainingPosition");
+            }
+            else {
+                turnPower = 0;
+                targetRobotAngle = imuAngle.getRadians();
+            }
         }
         else{
-            turnPower = turnSpeed * K_rotation;
             targetRobotAngle = imuAngle.getRadians();
+            turnPower = joystickTurnSpeed * K_rotation;
+            angleHoldingTimer.reset();
+            telemetry.addLine("not maintaining");
         }
-
-        telemetry.addData("robotTargetAngle", targetRobotAngle);
-        telemetry.addData("robotCurrentAngle", imuAngle.getDegrees());
 
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 driveSpeed * Math.sin(driveAngle) * highestPossibleMotorVelocity,
@@ -124,14 +145,29 @@ public class DrivetrainSubsystem extends SubsystemBase {
 //        robot.BT_Motor.setVelocity((Back.turnVelocityTicks) * finalAllMotorVelocityMultiplier);
 //        robot.BB_Motor.setVelocity((Back.turnVelocityTicks) * finalAllMotorVelocityMultiplier);
 
+        frontLeftModuleFinalDriveVelocity = prevFrontLeftDriveVelocity * driveVelocitySmoothingRatio + (1 - driveVelocitySmoothingRatio) * frontLeftModuleFinalDriveVelocity;
+        frontRightModuleFinalDriveVelocity = prevFrontRightDriveVelocity * driveVelocitySmoothingRatio + (1 - driveVelocitySmoothingRatio) * frontRightModuleFinalDriveVelocity;
+        backModuleFinalDriveVelocity = prevBackDriveVelocity * driveVelocitySmoothingRatio + (1 - driveVelocitySmoothingRatio) * backModuleFinalDriveVelocity;
 
-//        robot.FLB_Motor.setVelocity((FrontLeft.turnVelocityTicks - frontLeftModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
-//        robot.FRT_Motor.setVelocity((FrontRight.turnVelocityTicks + frontRightModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
-//        robot.FRB_Motor.setVelocity((FrontRight.turnVelocityTicks - frontRightModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
-//        robot.BT_Motor.setVelocity((Back.turnVelocityTicks + backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
-//        robot.BB_Motor.setVelocity((Back.turnVelocityTicks - backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+        prevFrontLeftDriveVelocity = frontLeftModuleFinalDriveVelocity;
+        prevFrontRightDriveVelocity = frontRightModuleFinalDriveVelocity;
+        prevBackDriveVelocity = backModuleFinalDriveVelocity;
 
-//
+        robot.FLT_Motor.setVelocity((FrontLeft.turnVelocityTicks + frontLeftModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+        robot.FLB_Motor.setVelocity((FrontLeft.turnVelocityTicks - frontLeftModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+        robot.FRT_Motor.setVelocity((FrontRight.turnVelocityTicks + frontRightModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+        robot.FRB_Motor.setVelocity((FrontRight.turnVelocityTicks - frontRightModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+        robot.BT_Motor.setVelocity((Back.turnVelocityTicks + backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+        robot.BB_Motor.setVelocity((Back.turnVelocityTicks - backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
+    }
+
+    public void stop(){
+        robot.FLT_Motor.setPower(0);
+        robot.FLB_Motor.setPower(0);
+        robot.FRT_Motor.setPower(0);
+        robot.FRB_Motor.setPower(0);
+        robot.BT_Motor.setPower(0);
+        robot.BB_Motor.setPower(0);
     }
 
     public void Calibrate(){

@@ -11,7 +11,8 @@ public class GamePad extends GamepadEx {
     }
 
     public double getTurnSpeed(){
-        return -super.getRightX();
+        double rightY = super.getRightX();
+        return -Math.signum(rightY) * Math.pow(rightY, 2);
     }
 
     public Vector2d getJoystickVector(){
@@ -22,9 +23,9 @@ public class GamePad extends GamepadEx {
 
         double PositiveDriveAngle = Math.abs(vector2d.angle());
         double maximumNotScaledDownSpeedInARectangularContour = (PositiveDriveAngle >= Math.toRadians(45) && PositiveDriveAngle <= Math.toRadians(135)) ? Math.hypot(left_stick_x, 1) : Math.hypot(left_stick_y, 1);
+
         vector2d = vector2d.div(maximumNotScaledDownSpeedInARectangularContour);
         vector2d.scale(vector2d.magnitude());
         return vector2d;
     }
-
 }

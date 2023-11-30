@@ -14,28 +14,18 @@ import org.firstinspires.ftc.teamcode.subsystems.*;
 @Config
 @TeleOp(name = "MainTeleOpMode", group = "OpMode")
 public class MainOpMode extends CommandOpMode {
-    //public IntakeSubsystem intakeSubsystem;
-    //public DepositorSubsystem depositorSubsystem;
     public DrivetrainSubsystem drivetrainSubsystem;
     GamePad gamePad;
     private final RobotHardware robot = RobotHardware.getInstance();
-
 
 
     @Override
     public void initialize() {
 
         robot.init(hardwareMap, telemetry);
-
-        //intakeSubsystem = new IntakeSubsystem(robot, telemetry, true);
-        //depositorSubsystem = new DepositorSubsystem(robot, telemetry, true);
         drivetrainSubsystem = new DrivetrainSubsystem(robot, telemetry, true);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-
-
-        new ResetDriveEncodersCommand(drivetrainSubsystem);
-        //drivetrainSubsystem.ResetAllEncoders();
-
+        drivetrainSubsystem.ResetAllEncoders();
         gamePad = new GamePad(gamepad1);
 
         //region BindTriggers ->

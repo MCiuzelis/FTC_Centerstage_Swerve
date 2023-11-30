@@ -50,29 +50,16 @@ public class SwerveModule extends Thread{
         double currentAngle = ((TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / (2f * ticksInOneRad));
         currentAngle = clampAngleAndTranslateRange(currentAngle);
 
-        telemetry.addData("currentAnglebeforescuff", Math.toDegrees(currentAngle));
-
-
-//        if (currentAngle < Math.toRadians(-90) && targetAngle.getRadians() > Math.toRadians(90)){
-//            currentAngle += Math.toRadians(360);
-//        }
-//
-//        else if (currentAngle > Math.toRadians(90) && targetAngle.getRadians() < Math.toRadians(-90)){
-//            currentAngle -= Math.toRadians(360);
-//        }
-
         double error = targetAngle.getRadians() - currentAngle;
 
-        if (Math.abs(error) > Math.toRadians(200)){     //teoriskai tuetu 180 but
-            currentAngle = currentAngle - Math.signum(currentAngle) * Math.toRadians(360);
-            error = targetAngle.getRadians() - currentAngle;
+        if (Math.abs(error) > Math.toRadians(180)) {
+            error += (-Math.signum(error) * Math.toRadians(360));
         }
 
-
-//        if (error > Math.toRadians(105)){
-//            error = -(Math.PI - error);
-//            driveSpeedMultiplier *= -1;
-//        }
+        if (Math.abs(error) > Math.toRadians(90)){
+            error += (-Math.signum(error) * Math.toRadians(180));
+            driveSpeedMultiplier *= -1;
+        }
 
         driveSpeedMultiplier *= moduleSpeed;
 
@@ -83,10 +70,6 @@ public class SwerveModule extends Thread{
 
         turnVelocityTicks = (DriveBaseTurnKp * error) + (DriveBaseTurnKi * integralSum) + (DriveBaseTurnKd * derivative);
         turnVelocityTicks = clamp(turnVelocityTicks, -maxTurningVelocity, maxTurningVelocity);
-
-        telemetry.addData("current", Math.toDegrees(currentAngle));
-        telemetry.addData("target", targetAngle.getDegrees());
-        telemetry.addData("error", error);
     }
 
     public void CalibrateModule(){
@@ -183,7 +166,7 @@ public class SwerveModule extends Thread{
         }
 
         if (angle > Math.PI){
-            angle = 2d * Math.PI - angle;
+            angle = -2d * Math.PI + angle;
         }
         if (angle < -Math.PI){
             angle = 2d * Math.PI + angle;
