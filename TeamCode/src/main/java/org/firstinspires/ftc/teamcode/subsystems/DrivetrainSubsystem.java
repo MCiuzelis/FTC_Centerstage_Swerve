@@ -47,11 +47,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
         angleHoldingTimer = new ElapsedTime();
     }
 
+
+
     public void ResetAllEncoders(){
         FrontLeft.resetModuleEncoders();
         FrontRight.resetModuleEncoders();
         Back.resetModuleEncoders();
     }
+
+
 
     public void Drive(Vector2d joystickDrive, double joystickTurnSpeed) {
 
@@ -73,7 +77,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
                 else{
                     turnPower = robotAngleHoldingKp * error;
                 }
-                telemetry.addLine("maintainingPosition");
+                //telemetry.addLine("maintainingPosition");
             }
             else {
                 turnPower = 0;
@@ -84,12 +88,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
             targetRobotAngle = imuAngle.getRadians();
             turnPower = joystickTurnSpeed * K_rotation;
             angleHoldingTimer.reset();
-            telemetry.addLine("not maintaining");
+            //telemetry.addLine("not maintaining");
         }
+
+        telemetry.addData("driveSpeed", driveSpeed);
+        telemetry.addData("driveAngle", Math.toDegrees(driveAngle));
 
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 driveSpeed * Math.sin(driveAngle) * highestPossibleMotorVelocity,
-                driveSpeed * Math.cos(driveAngle) * highestPossibleMotorVelocity,
+                driveSpeed * -Math.cos(driveAngle) * highestPossibleMotorVelocity,
                 turnPower,
                 imuAngle
         );
@@ -160,6 +167,20 @@ public class DrivetrainSubsystem extends SubsystemBase {
         robot.BT_Motor.setVelocity((Back.turnVelocityTicks + backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
         robot.BB_Motor.setVelocity((Back.turnVelocityTicks - backModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
     }
+
+
+    public void turnByDegrees(double angleDegrees, double kp){
+        double angleError = angleDegrees - robot.imu.getRotation2d().getDegrees();
+        Drive(new Vector2d(0, 0), angleError * kp);
+    }
+
+    public boolean isAtAngle(double angleDegrees, double tolerance){
+        double angleError = angleDegrees - robot.imu.getRotation2d().getDegrees();
+        return Math.abs(angleError) < tolerance;
+    }
+
+
+
 
     public void stop(){
         robot.FLT_Motor.setPower(0);

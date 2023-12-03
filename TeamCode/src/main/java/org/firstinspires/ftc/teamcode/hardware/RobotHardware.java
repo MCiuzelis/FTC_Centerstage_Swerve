@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 
 public class RobotHardware {
 
@@ -21,6 +22,8 @@ public class RobotHardware {
     public RevIMU imu;
 
     public TouchSensor limitFR, limitFL, limitB, limitIntake;
+
+    public WebcamName webcam;
 
     private static RobotHardware instance = null;
 
@@ -43,26 +46,24 @@ public class RobotHardware {
         BT_Motor = initMotor(hw, "eh3", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
         BB_Motor = initMotor(hw, "ch3", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        clawAngleServo = initServo(hw, "EHservo5", Servo.Direction.FORWARD);
-        clawLeftServo = initServo(hw, "o", Servo.Direction.FORWARD);
-        clawRightServo = initServo(hw, "o", Servo.Direction.FORWARD);
+        //clawAngleServo = initServo(hw, "EHservo5", Servo.Direction.FORWARD);
 
-        planeServo = initServo(hw, "EHservo4", Servo.Direction.REVERSE);
+        clawLeftServo = initServo(hw, "EHservo3", Servo.Direction.FORWARD);
+        clawRightServo = initServo(hw, "EHservo4", Servo.Direction.REVERSE);
+        clawAngleServo = initServo(hw, "EHservo0", Servo.Direction.REVERSE);
+
+        planeServo = initServo(hw, "CHservo0", Servo.Direction.REVERSE);
         planeServo.setPosition(planeLockPosition);
-
-
-        //endregion
-        //region Digital
 
         limitIntake = hw.get(TouchSensor.class, "CHdigital1");
         limitFL = hw.get(TouchSensor.class,"CHdigital2");
         limitFR = hw.get(TouchSensor.class,"EHdigital0");
         limitB = hw.get(TouchSensor.class,"EHdigital2");
 
-        //endregion
-
         imu = new RevIMU(hw, "imu");
         imu.init();
+
+        webcam = hw.get(WebcamName.class, "Webcam 1");
     }
 
     private DcMotorEx initMotor(HardwareMap hw, String motorPort, DcMotorEx.Direction direction, DcMotorEx.ZeroPowerBehavior zeroPowerBehavior) {

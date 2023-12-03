@@ -9,39 +9,53 @@ public class Constants {
 
     //Lift position constants:
     public static int LiftPickupPosition = 0;
-    public static int LiftLowPosition = 500;
-    public static int LiftMidPosition = 900;
-    public static int LiftHighPosition = 1300;
+    public static int LiftLowPosition = 100;
+    public static int LiftMidPosition = 290;
+    public static int LiftHighPosition = 700;
+
+    public static int LiftAllowedError = 10;
 
     //Claw angle constants
-    public static int ClawAnglePickupPosition = 0;
-    public static int ClawAngleDepositPosition = 0;
+    public static double ClawAngleTransferPosition = 1;
+    public static double ClawAnglePickupPosition = 0.62;
+    public static double ClawAngleDepositPosition = 0.55;
 
     // claw angle servo y = kx + b function set points
     public static double [] firstSetPoint = {0, 0};
     public static double [] secondSetPoint = {0, 0};
 
     //Claw grab & release constants:
-    public static double ClawClosedPosition = 0;
-    public static double ClawOpenPosition = 0;
+    public static double ClawClosedPosition = 1;
+    public static double ClawOpenPosition = 0.5;
 
     //Lift pid:
-    public static double LiftKp = 0.003;
-    public static double LiftKi = 0.0d;
-    public static double LiftKd = 0.0d;
-    public static double LiftKf = 0.0d;
+    public static double LiftKp = 0.01;
+    public static double LiftKi = 0.008;
+    public static double LiftKd = 0.00005;
+    public static double LiftKf = 0.001;
 
+    public static double LiftPowerClamp = 0.4;
 
     //Arm pickup and deposit positions:
-    public static int armMotorDepositPosition = 0;
+    public static int armMotorDepositPosition = 440;
+    public static int armMotorTransferPosition = 100;
     public static int armMotorPickupPosition = 0;
 
+    public static double armMotorTicksInOneRad = (28d * 76d * 76d * 84d) / (21d * 21d * 29d * 2d * Math.PI);
+
     //Arm pid:
-    public static double ArmKp = 0;
-    public static double ArmKi = 0;
+    public static double ArmKp = -0.0025;
+    public static double ArmKi = 0.0025;
+    public static double ArmKd = 0;
+    public static double ArmKf = 0.02;
+
+    public static double ArmStartAngle = Math.toRadians(20);
+    public static double ArmAllowedError = 5;
+
+    public static double ArmPowerClamp = 0.3;
 
     //Plane servo positions:
-    public static double planeLaunchPosition = 0.6;
+    public static double planeLaunchPosition = 0.58;
     public static double planeLockPosition = 0;
 
 
@@ -67,10 +81,10 @@ public class Constants {
     public static double DriveBaseTurnKd = 20;
 
     //robot angle holding and smoothing constants:
-    public static double driveVelocitySmoothingRatio = 0.8;
+    public static double driveVelocitySmoothingRatio = 0.6;
     public static double angleHoldingDelayMs = 460;
-    public static double robotAngleHoldingKp = 7000;
-    public static double allowedRobotAngleError = Math.toRadians(7);
+    public static double robotAngleHoldingKp = 5000;
+    public static double allowedRobotAngleError = Math.toRadians(2);
 
     //Calibration velocities:
     public static double fastCalibrationSpeed = 550;

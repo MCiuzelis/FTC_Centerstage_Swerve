@@ -8,10 +8,10 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 
 public class PlaneLauncherSubsystem {
-    RobotHardware robot;
-    Telemetry telemetry;
+    public RobotHardware robot;
+    public Telemetry telemetry;
 
-    public PlaneLauncherSubsystem(RobotHardware robot){
+    public PlaneLauncherSubsystem(RobotHardware robot, Telemetry telemetry){
         this.robot = robot;
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
     }

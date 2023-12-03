@@ -2,7 +2,10 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.command.SubsystemBase;
+import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
@@ -20,17 +23,20 @@ public class ArmSubsystem extends SubsystemBase {
     private int slideTargetMotorPosition;
     double slideLastError = 0;
     double slideIntegralSum = 0;
-    double armIntegralSum = 0;
 
     ElapsedTime dedicatedSlideTimer = new ElapsedTime();
     ElapsedTime dedicatedArmTimer = new ElapsedTime();
+
+    PIDController armPidController;
 
 
 
     public ArmSubsystem(RobotHardware robot, Telemetry telemetry, boolean isMode_DEBUG){
         this.robot = robot;
-        this.telemetry = telemetry;
+        this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         this.DEBUG_MODE = isMode_DEBUG;
+        armPidController = new PIDController(ArmKp, ArmKi, ArmKd);
+        update(ARM_TARGET_POSITION.PICKUP);
     }
 
 
@@ -50,11 +56,11 @@ public class ArmSubsystem extends SubsystemBase {
                 break;
             case BOTH_OPEN:
                 robot.clawLeftServo.setPosition(ClawOpenPosition);
-                robot.clawLeftServo.setPosition(ClawOpenPosition);
+                robot.clawRightServo.setPosition(ClawOpenPosition);
                 break;
             case BOTH_CLOSED:
                 robot.clawLeftServo.setPosition(ClawClosedPosition);
-                robot.clawLeftServo.setPosition(ClawClosedPosition);
+                robot.clawRightServo.setPosition(ClawClosedPosition);
                 break;
         }
 
@@ -68,6 +74,9 @@ public class ArmSubsystem extends SubsystemBase {
                 break;
             case DEPOSIT:
                 robot.clawAngleServo.setPosition(ClawAngleDepositPosition);
+                break;
+            case TRANSFER:
+                robot.clawAngleServo.setPosition(ClawAngleTransferPosition);
                 break;
         }
     }
@@ -100,11 +109,44 @@ public class ArmSubsystem extends SubsystemBase {
 
 
 
+    public boolean hasLiftReachedTargetPosition(){
+        double currentPos = robot.slideMotor.getCurrentPosition();
+        return currentPos > slideTargetMotorPosition - LiftAllowedError && currentPos < slideTargetMotorPosition + LiftAllowedError;
+    }
+
+    public boolean hasArmReachedTargetPosition(){
+        double currentPos = robot.armMotor.getCurrentPosition();
+        return  currentPos > armTargetMotorPosition - ArmAllowedError && currentPos < armTargetMotorPosition + ArmAllowedError;
+    }
+
+    public boolean hasReachedTransferPosition(){
+        double currentPos = robot.slideMotor.getCurrentPosition();
+        boolean LiftAtPosition = currentPos > LiftPickupPosition - LiftAllowedError && currentPos < LiftPickupPosition + LiftAllowedError;
+
+        double ArmCurrentPos = robot.armMotor.getCurrentPosition();
+        boolean ArmAtPosition = ArmCurrentPos > armMotorTransferPosition - ArmAllowedError && ArmCurrentPos < armMotorTransferPosition + ArmAllowedError;
+
+       if (LiftAtPosition && ArmAtPosition){
+           telemetry.addLine("at Position");
+           return true;
+       }
+       else{
+           telemetry.addLine("my man working");
+           return false;
+       }
+    }
+
+
+
+
     public void update(ARM_TARGET_POSITION targetPosition) {
         arm_target_position = targetPosition;
         switch (arm_target_position){
             case DEPOSIT:
                 armTargetMotorPosition = armMotorDepositPosition;
+                break;
+            case TRANSFER:
+                armTargetMotorPosition = armMotorTransferPosition;
                 break;
             case PICKUP:
                 armTargetMotorPosition = armMotorPickupPosition;
@@ -113,26 +155,28 @@ public class ArmSubsystem extends SubsystemBase {
     }
 
 
-    public void StopSlideMotor(){
-        robot.armMotor.setPower(0);
-    }
-
-
     @Override
     public void periodic() {
+        armPidController.setPID(ArmKp, ArmKi, ArmKd);
+        telemetry.addData("Target lift reached?", hasLiftReachedTargetPosition());
+        telemetry.addData("Target arm reached?", hasArmReachedTargetPosition());
         AutomatedLiftMovement();
         AutomatedArmMovement();
+
+        telemetry.addData("time", Runtime.getRuntime());
     }
 
 
 
     private void AutomatedArmMovement() {
         int currentMotorPosition = robot.armMotor.getCurrentPosition();
-        double error = armTargetMotorPosition - currentMotorPosition;
-        //double derivative = (error - slideLastError) / dedicatedArmTimer.seconds();
-        armIntegralSum = armIntegralSum + (error * dedicatedArmTimer.seconds());
+        double currentArmAngle = (currentMotorPosition / armMotorTicksInOneRad) - ArmStartAngle;
+        double power = armPidController.calculate(armTargetMotorPosition, currentMotorPosition) + Math.cos(currentArmAngle) * ArmKf;
 
-        double power = (ArmKp * error) + (ArmKi * armIntegralSum);
+        power = clamp(power, -ArmPowerClamp, ArmPowerClamp);
+        telemetry.addData("curret", currentMotorPosition);
+        telemetry.addData("targetArmMotorPower", armTargetMotorPosition);
+        telemetry.addData("power", power);
         robot.armMotor.setPower(power);
         dedicatedArmTimer.reset();
     }
@@ -140,14 +184,30 @@ public class ArmSubsystem extends SubsystemBase {
 
 
     public void AutomatedLiftMovement(){
-        int currentMotorPosition = robot.armMotor.getCurrentPosition();
+        int currentMotorPosition = robot.slideMotor.getCurrentPosition();
         double error = slideTargetMotorPosition - currentMotorPosition;
         double derivative = (error - slideLastError) / dedicatedSlideTimer.seconds();
         slideIntegralSum = slideIntegralSum + (error * dedicatedSlideTimer.seconds());
 
 
         double power = (LiftKp * error) + (LiftKi * slideIntegralSum) + (LiftKd * derivative) + LiftKf;
-        robot.armMotor.setPower(power);
+        power = clamp(power, -LiftPowerClamp, LiftPowerClamp);
+        robot.slideMotor.setPower(power);
+        dedicatedSlideTimer.reset();
+    }
+
+
+    public void releasePixel(int offset){
+        int currentMotorPosition = robot.slideMotor.getCurrentPosition();
+
+        slideTargetMotorPosition -= offset;
+
+        double error = slideTargetMotorPosition - currentMotorPosition;
+        double derivative = (error - slideLastError) / dedicatedSlideTimer.seconds();
+        slideIntegralSum = slideIntegralSum + (error * dedicatedSlideTimer.seconds());
+
+        double power = (LiftKp * error) + (LiftKi * slideIntegralSum) + (LiftKd * derivative);
+        robot.slideMotor.setPower(power);
         dedicatedSlideTimer.reset();
     }
 
@@ -163,6 +223,7 @@ public class ArmSubsystem extends SubsystemBase {
 
     public enum CLAW_ANGLE{
         PICKUP,
+        TRANSFER,
         DEPOSIT
     }
 
@@ -175,6 +236,7 @@ public class ArmSubsystem extends SubsystemBase {
 
     public enum ARM_TARGET_POSITION{
         PICKUP,
+        TRANSFER,
         DEPOSIT
     }
 }
