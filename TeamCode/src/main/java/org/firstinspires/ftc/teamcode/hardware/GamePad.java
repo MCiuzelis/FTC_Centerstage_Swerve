@@ -14,7 +14,7 @@ public class GamePad extends GamepadEx {
     public double getTurnSpeed(){
         double rightY = super.getRightX();
         if (super.getButton(GamepadKeys.Button.LEFT_BUMPER)){
-            rightY *= 0.15;
+            rightY *= 0.5;
         }
         return -Math.signum(rightY) * Math.pow(rightY, 2);
     }
@@ -34,7 +34,6 @@ public class GamePad extends GamepadEx {
         if (super.getButton(GamepadKeys.Button.LEFT_BUMPER)){
             vector2d = vector2d.scale(0.25);
         }
-
         return vector2d;
     }
 }

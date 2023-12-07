@@ -13,16 +13,12 @@ public class Constants {
     public static int LiftMidPosition = 290;
     public static int LiftHighPosition = 700;
 
-    public static int LiftAllowedError = 10;
 
     //Claw angle constants
     public static double ClawAngleTransferPosition = 1;
     public static double ClawAnglePickupPosition = 0.62;
     public static double ClawAngleDepositPosition = 0.55;
 
-    // claw angle servo y = kx + b function set points
-    public static double [] firstSetPoint = {0, 0};
-    public static double [] secondSetPoint = {0, 0};
 
     //Claw grab & release constants:
     public static double ClawClosedPosition = 1;
@@ -50,13 +46,11 @@ public class Constants {
     public static double ArmKf = 0.02;
 
     public static double ArmStartAngle = Math.toRadians(20);
-    public static double ArmAllowedError = 5;
-
     public static double ArmPowerClamp = 0.3;
 
     //Plane servo positions:
-    public static double planeLaunchPosition = 0.58;
-    public static double planeLockPosition = 0;
+    public static double planeLaunchPosition = 0.55;
+    public static double planeLockPosition = 0.47;
 
 
     //swerve module offsets from robot center:
@@ -70,7 +64,7 @@ public class Constants {
     public static double maxTurningVelocity = highestPossibleMotorVelocity * 0.9f;
 
     // turning velocity coefficient
-    public static double K_rotation = 10000;
+    public static double K_rotation = 5000;
 
     //multiplier all velocities by this value; if goofy, make small for troubleshooting (0; 1]
     public static double finalAllMotorVelocityMultiplier = 1;
@@ -80,11 +74,12 @@ public class Constants {
     public static double DriveBaseTurnKi = 40;
     public static double DriveBaseTurnKd = 20;
 
+    public static double DriveBaseDriveKs = 20;
+    public static double DriveBaseDriveKv = 2;
+    public static double DriveBaseDriveKa = 0.1;
+
     //robot angle holding and smoothing constants:
-    public static double driveVelocitySmoothingRatio = 0.6;
-    public static double angleHoldingDelayMs = 460;
-    public static double robotAngleHoldingKp = 5000;
-    public static double allowedRobotAngleError = Math.toRadians(2);
+    public static double robotAngleHoldingKp = 8000;
 
     //Calibration velocities:
     public static double fastCalibrationSpeed = 550;

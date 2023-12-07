@@ -1,9 +1,13 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 
+import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKa;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKs;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKv;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKd;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKi;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKp;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.highestPossibleMotorVelocity;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -17,11 +21,11 @@ import org.firstinspires.ftc.teamcode.hardware.Constants;
 
 public class SwerveModule extends Thread{
 
-    public static double ticksInOneRad = Constants.ticksInOneRad;
-    public static double maxTurningVelocity = Constants.maxTurningVelocity;
+    static double ticksInOneRad = Constants.ticksInOneRad;
+    static double maxTurningVelocity = Constants.maxTurningVelocity;
 
-    public static double fastCalibrationSpeed = Constants.fastCalibrationSpeed;
-    public double slowCalibrationSpeed = Constants.slowCalibrationSpeed;
+    static double fastCalibrationSpeed = Constants.fastCalibrationSpeed;
+    double slowCalibrationSpeed = Constants.slowCalibrationSpeed;
 
     DcMotorEx TopMotor, BottomMotor;
     TouchSensor limitSwitch;
@@ -33,21 +37,29 @@ public class SwerveModule extends Thread{
 
     Telemetry telemetry;
 
-    public double lastError = 0;
-    public double integralSum = 0;
+    double lastError = 0;
+    double integralSum = 0;
 
-    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, TouchSensor limitSwitch, int offset, Telemetry telemetry){
+    double angleOffset;
+
+
+
+
+    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, TouchSensor limitSwitch, int offset, double angleOffset, Telemetry telemetry){
         this.TopMotor = TopMotor;
         this.BottomMotor = BottomMotor;
         this.limitSwitch = limitSwitch;
         this.offset = offset;
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        this.angleOffset = angleOffset;
     }
+
+
 
 
     public void updateTurningAndDrivingSpeeds(Rotation2d targetAngle, double moduleSpeed){
         driveSpeedMultiplier = 1;
-        double currentAngle = ((TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / (2f * ticksInOneRad));
+        double currentAngle = ((TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / (2f * ticksInOneRad)) + angleOffset;
         currentAngle = clampAngleAndTranslateRange(currentAngle);
 
         double error = targetAngle.getRadians() - currentAngle;
@@ -61,7 +73,14 @@ public class SwerveModule extends Thread{
             driveSpeedMultiplier *= -1;
         }
 
-        driveSpeedMultiplier *= moduleSpeed;
+        double currentModuleSpeed = (BottomMotor.getVelocity() - TopMotor.getVelocity()) / 2d;
+
+        double driveError = moduleSpeed - currentModuleSpeed;
+        double DriveSpeedPower = DriveBaseDriveKs * Math.signum(moduleSpeed) + DriveBaseDriveKv * moduleSpeed + driveError * DriveBaseDriveKa;
+
+        DriveSpeedPower = clamp(DriveSpeedPower, -highestPossibleMotorVelocity, highestPossibleMotorVelocity);
+        driveSpeedMultiplier *= DriveSpeedPower;
+
 
         double derivative = (error - lastError) / timer.seconds();
         integralSum = integralSum + (error * timer.seconds());
@@ -72,8 +91,12 @@ public class SwerveModule extends Thread{
         turnVelocityTicks = clamp(turnVelocityTicks, -maxTurningVelocity, maxTurningVelocity);
     }
 
-    public void CalibrateModule(){
 
+
+
+
+
+    public void CalibrateModule(){
         if (limitSwitch.isPressed()) {
             while (getModuleAngleTicks() < 500) {
                 setModuleVelocity(fastCalibrationSpeed);
@@ -117,18 +140,21 @@ public class SwerveModule extends Thread{
 
 
         if (offset < 0){
-            while (getModuleAngleDegrees() > offset) {
+            while (getAngleDegrees() > offset) {
                 setModuleVelocity(-slowCalibrationSpeed / 1.5d);
             }
         }
         else{
-            while (getModuleAngleDegrees() < offset) {
+            while (getAngleDegrees() < offset) {
                 setModuleVelocity(slowCalibrationSpeed / 1.5d);
             }
         }
         setModuleVelocity(0);
         resetModuleEncoders();
     }
+
+
+
 
     @Override
     public void run() {
@@ -140,22 +166,38 @@ public class SwerveModule extends Thread{
         return (TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / 2d;
     }
 
-    private double getModuleAngleDegrees(){
-        return Math.toDegrees(getModuleAngleTicks() / ticksInOneRad);
+
+    public double getAngleRads(){
+        return getModuleAngleTicks() / ticksInOneRad;
     }
+
+
+    private double getAngleDegrees(){
+        return Math.toDegrees(getAngleRads());
+    }
+
+
 
     private void setModuleVelocity(double velocity){
         TopMotor.setVelocity(velocity);
         BottomMotor.setVelocity(velocity);
     }
 
+
+
     public void resetModuleEncoders(){
         TopMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         TopMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         BottomMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         BottomMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        TopMotor.setPower(0);
+        BottomMotor.setPower(0);
         timer.reset();
     }
+
+
+
+
 
     public double clampAngleAndTranslateRange(double angle){
         while (angle >= 2d * Math.PI) {

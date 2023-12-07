@@ -27,29 +27,44 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Rotation2d backModuleAngle = Rotation2d.fromDegrees(0);
 
     double targetRobotAngle = 0;
-    double prevFrontLeftDriveVelocity = 0;
-    double prevFrontRightDriveVelocity = 0;
-    double prevBackDriveVelocity = 0;
-
-    ElapsedTime angleHoldingTimer;
 
     SwerveModule FrontLeft, FrontRight, Back;
     SwerveDriveKinematics m_kinematics = new SwerveDriveKinematics(frontLeftLocation, frontRightLocation, backLocation);
+
+    Vector2d joystickDrive = new Vector2d(0, 0);
+    double joystickTurnSpeed = 0;
+    Rotation2d imuOffset;
+
+
+
+
+    public DrivetrainSubsystem(RobotHardware hw, Telemetry telemetry, double[] angleOffsets, double imuOffsetDegrees, boolean isMode_DEBUG){
+        robot = hw;
+        this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        DEBUG_MODE = isMode_DEBUG;
+
+        FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.limitFL, -137, angleOffsets[0], telemetry);
+        FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.limitFR, 141, angleOffsets[1], telemetry);
+        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.limitB, 115, angleOffsets[2], telemetry);
+        this.imuOffset = Rotation2d.fromDegrees(imuOffsetDegrees);
+    }
+
 
     public DrivetrainSubsystem(RobotHardware hw, Telemetry telemetry, boolean isMode_DEBUG){
         robot = hw;
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         DEBUG_MODE = isMode_DEBUG;
 
-        FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.limitFL, -137, telemetry);
-        FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.limitFR, 141, telemetry);
-        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.limitB, 115, telemetry);
-        angleHoldingTimer = new ElapsedTime();
+        FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.limitFL, -137, 0, telemetry);
+        FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.limitFR, 141, 0, telemetry);
+        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.limitB, 115, 0, telemetry);
+        imuOffset = Rotation2d.fromDegrees(0);
     }
 
 
 
-    public void ResetAllEncoders(){
+
+    public void resetAllEncoders(){
         FrontLeft.resetModuleEncoders();
         FrontRight.resetModuleEncoders();
         Back.resetModuleEncoders();
@@ -57,7 +72,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
 
 
-    public void Drive(Vector2d joystickDrive, double joystickTurnSpeed) {
+    public void drive(Vector2d driveVector, double turnSpeed){
+        joystickDrive = driveVector;
+        joystickTurnSpeed = turnSpeed;
+    }
+
+
+
+
+    public void periodic() {
 
         double driveSpeed = joystickDrive.magnitude();
         double driveAngle = joystickDrive.angle();
@@ -65,40 +88,28 @@ public class DrivetrainSubsystem extends SubsystemBase {
         Rotation2d imuAngle = robot.imu.getRotation2d();
         double turnPower;
 
-        if (joystickTurnSpeed == 0) {
-            if (angleHoldingTimer.milliseconds() > angleHoldingDelayMs) {
-                double error = targetRobotAngle - imuAngle.getRadians();
-                if (Math.abs(error) > Math.toRadians(180)) {
-                    error += (-Math.signum(error) * Math.toRadians(360));
-                }
-                if (Math.abs(error) < allowedRobotAngleError){
-                    turnPower = 0;
-                }
-                else{
-                    turnPower = robotAngleHoldingKp * error;
-                }
-                //telemetry.addLine("maintainingPosition");
-            }
-            else {
-                turnPower = 0;
-                targetRobotAngle = imuAngle.getRadians();
-            }
+        if (joystickTurnSpeed == 0 && driveSpeed != 0) {
+            double error = targetRobotAngle - imuAngle.getRadians();
+            turnPower = robotAngleHoldingKp * error;
         }
+
         else{
             targetRobotAngle = imuAngle.getRadians();
             turnPower = joystickTurnSpeed * K_rotation;
-            angleHoldingTimer.reset();
-            //telemetry.addLine("not maintaining");
         }
+
+
 
         telemetry.addData("driveSpeed", driveSpeed);
         telemetry.addData("driveAngle", Math.toDegrees(driveAngle));
+
+
 
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 driveSpeed * Math.sin(driveAngle) * highestPossibleMotorVelocity,
                 driveSpeed * -Math.cos(driveAngle) * highestPossibleMotorVelocity,
                 turnPower,
-                imuAngle
+                imuAngle.plus(imuOffset)
         );
 
         SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds);
@@ -152,13 +163,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
 //        robot.BT_Motor.setVelocity((Back.turnVelocityTicks) * finalAllMotorVelocityMultiplier);
 //        robot.BB_Motor.setVelocity((Back.turnVelocityTicks) * finalAllMotorVelocityMultiplier);
 
-        frontLeftModuleFinalDriveVelocity = prevFrontLeftDriveVelocity * driveVelocitySmoothingRatio + (1 - driveVelocitySmoothingRatio) * frontLeftModuleFinalDriveVelocity;
-        frontRightModuleFinalDriveVelocity = prevFrontRightDriveVelocity * driveVelocitySmoothingRatio + (1 - driveVelocitySmoothingRatio) * frontRightModuleFinalDriveVelocity;
-        backModuleFinalDriveVelocity = prevBackDriveVelocity * driveVelocitySmoothingRatio + (1 - driveVelocitySmoothingRatio) * backModuleFinalDriveVelocity;
-
-        prevFrontLeftDriveVelocity = frontLeftModuleFinalDriveVelocity;
-        prevFrontRightDriveVelocity = frontRightModuleFinalDriveVelocity;
-        prevBackDriveVelocity = backModuleFinalDriveVelocity;
 
         robot.FLT_Motor.setVelocity((FrontLeft.turnVelocityTicks + frontLeftModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
         robot.FLB_Motor.setVelocity((FrontLeft.turnVelocityTicks - frontLeftModuleFinalDriveVelocity) * finalAllMotorVelocityMultiplier);
@@ -169,10 +173,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
 
-    public void turnByDegrees(double angleDegrees, double kp){
-        double angleError = angleDegrees - robot.imu.getRotation2d().getDegrees();
-        Drive(new Vector2d(0, 0), angleError * kp);
-    }
+
 
     public boolean isAtAngle(double angleDegrees, double tolerance){
         double angleError = angleDegrees - robot.imu.getRotation2d().getDegrees();
@@ -191,9 +192,16 @@ public class DrivetrainSubsystem extends SubsystemBase {
         robot.BB_Motor.setPower(0);
     }
 
+
+
     public void Calibrate(){
         FrontLeft.start();
         FrontRight.start();
         Back.start();
+    }
+
+
+    public double[] getAllModuleAngleRads(){
+        return new double[]{FrontLeft.getAngleRads(), FrontRight.getAngleRads(), Back.getAngleRads()};
     }
 }

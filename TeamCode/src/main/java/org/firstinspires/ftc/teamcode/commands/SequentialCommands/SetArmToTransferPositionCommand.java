@@ -13,7 +13,7 @@ public class SetArmToTransferPositionCommand extends SequentialCommandGroup {
     public SetArmToTransferPositionCommand(ArmSubsystem arm){
         addCommands(
                 new UpdateClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)
-                        .andThen(new WaitCommand(200))
+                        .andThen(new WaitCommand(100))
                             .andThen(new SetSlidesToPositionCommand(arm, ArmSubsystem.SLIDE_TARGET_POSITION.PICKUP_POS))
                                     .andThen(new SetArmToPositionCommand(arm, ArmSubsystem.ARM_TARGET_POSITION.TRANSFER))
                                             .andThen(new WaitCommand(300))

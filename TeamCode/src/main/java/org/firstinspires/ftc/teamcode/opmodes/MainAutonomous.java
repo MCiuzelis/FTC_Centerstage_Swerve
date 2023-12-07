@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.firstinspires.ftc.teamcode.commands.AutonomousCommands.*;
+import org.firstinspires.ftc.teamcode.hardware.CalibrationTransfer;
 import org.firstinspires.ftc.teamcode.hardware.PropDetectionPipeline;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
@@ -16,6 +17,7 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 @Autonomous(name = "MainAutonomous", group = "OpMode")
 public class MainAutonomous extends CommandOpMode {
     private final RobotHardware robot = new RobotHardware();
+    private final CalibrationTransfer file = new CalibrationTransfer(telemetry);
     private DrivetrainSubsystem drivetrain;
     private ArmSubsystem arm;
     OpenCvCamera camera;
@@ -55,15 +57,15 @@ public class MainAutonomous extends CommandOpMode {
         if (!activated) {
             switch (pipeline.getPositionResult()) {
                 case LEFT:
-                    schedule(new AutonomousLeftCommand(arm, drivetrain).whenFinished(() -> this.activated = true));
+                    schedule(new AutonomousLeftCommand(arm, drivetrain, file, robot));
                     activated = true;
                     break;
                 case MIDDLE:
-                    schedule(new AutonomousMiddleCommand(arm, drivetrain).whenFinished(() -> this.activated = true));
+                    schedule(new AutonomousMiddleCommand(arm, drivetrain, file, robot));
                     activated = true;
                     break;
                 case RIGHT:
-                    schedule(new AutonomousRightCommand(arm, drivetrain).whenFinished(() -> this.activated = true));
+                    schedule(new AutonomousRightCommand(arm, drivetrain, file, robot));
                     activated = true;
                     break;
             }

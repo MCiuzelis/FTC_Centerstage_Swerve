@@ -12,6 +12,7 @@ public class DriveTimeoutCommand extends SequentialCommandGroup {
         addCommands(
                 new DriveCommand(driveTrain, speedMultiplier, angleDegrees, turnSpeed)
                         .andThen(new WaitCommand(time))
+                        .andThen(new DriveCommand(driveTrain, 0, angleDegrees, 0))
                         .andThen(new InstantCommand(driveTrain::stop))
         );
 

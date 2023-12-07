@@ -12,8 +12,10 @@ public class TurnByDegreesCommand extends SequentialCommandGroup {
     public TurnByDegreesCommand(DrivetrainSubsystem driveTrain, double angleDegrees, double tolerance, double kp){
 
         addCommands(
-                new TurnCommand(driveTrain, angleDegrees, kp)
+                new TurnCommand(driveTrain, kp)
+                        .andThen(new WaitCommand(400))
                         .andThen(new WaitUntilCommand(()->driveTrain.isAtAngle(angleDegrees, tolerance)))
+                        .andThen(new TurnCommand(driveTrain, 0))
                         .andThen(new InstantCommand(driveTrain::stop))
         );
 

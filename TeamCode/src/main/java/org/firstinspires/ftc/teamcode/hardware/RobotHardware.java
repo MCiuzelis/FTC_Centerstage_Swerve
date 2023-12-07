@@ -2,13 +2,17 @@ package org.firstinspires.ftc.teamcode.hardware;
 
 import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
 import com.arcrobotics.ftclib.hardware.RevIMU;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+
+import java.util.List;
 
 public class RobotHardware {
 
@@ -27,6 +31,8 @@ public class RobotHardware {
 
     private static RobotHardware instance = null;
 
+    public static List<LynxModule> allHubs;
+
     public static RobotHardware getInstance(){
         if (instance == null){
             instance = new RobotHardware();
@@ -36,6 +42,8 @@ public class RobotHardware {
 
     public void init(HardwareMap hw, Telemetry telemetry) {
         this.telemetry = telemetry;
+
+        allHubs = hw.getAll(LynxModule.class);
 
         armMotor = initMotor(hw, "eh2", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
         slideMotor = initMotor(hw, "ch2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -65,6 +73,24 @@ public class RobotHardware {
 
         webcam = hw.get(WebcamName.class, "Webcam 1");
     }
+
+
+
+    public void changeBulkCachingMode(LynxModule.BulkCachingMode mode){
+        for (LynxModule module : allHubs) {
+            module.setBulkCachingMode(mode);
+        }
+    }
+
+
+
+    public void clearBulkCache(){
+        for (LynxModule module : allHubs) {
+            module.clearBulkCache();
+        }
+    }
+
+
 
     private DcMotorEx initMotor(HardwareMap hw, String motorPort, DcMotorEx.Direction direction, DcMotorEx.ZeroPowerBehavior zeroPowerBehavior) {
         DcMotorEx motor = hw.get(DcMotorEx.class, motorPort);
