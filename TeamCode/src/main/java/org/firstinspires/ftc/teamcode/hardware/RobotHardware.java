@@ -1,82 +1,99 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.*;
+import static com.arcrobotics.ftclib.util.MathUtils.clamp;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.nominalBatteryVoltage;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLockPosition;
+
+import androidx.annotation.GuardedBy;
+
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.TouchSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 
 import java.util.List;
 
-public class RobotHardware {
+public class RobotHardware implements Runnable{
 
     Telemetry telemetry;
-    //Motors and servos
+    HardwareMap hw;
 
-    public Servo intakeHingeServo, planeServo, clawAngleServo, clawLeftServo, clawRightServo;
+    public DcMotorEx FLT_Motor, FLB_Motor, FRT_Motor, FRB_Motor, BT_Motor, BB_Motor, ArmMotor;
 
-    public DcMotorEx slideMotor, armMotor, FLT_Motor, FLB_Motor, FRT_Motor, FRB_Motor, BT_Motor, BB_Motor;
-
+    private final Object imuLock = new Object();
+    @GuardedBy("imuLock")
     public RevIMU imu;
+    Thread imuThread;
 
-    public TouchSensor limitFR, limitFL, limitB, limitIntake;
 
-    public WebcamName webcam;
+    ElapsedTime voltageTimer = new ElapsedTime();
+    double voltageDriveMultiplier = 1;
 
-    private static RobotHardware instance = null;
 
-    public static List<LynxModule> allHubs;
+    public DigitalChannel frontRightCalibrationSensor, frontLeftCalibrationSensor, backCalibrationSensor;
+    List<LynxModule> allHubs;
 
-    public static RobotHardware getInstance(){
-        if (instance == null){
-            instance = new RobotHardware();
-        }
-        return instance;
+
+    public Rotation2d imuAngle = Rotation2d.fromDegrees(0);
+    public Servo clawAngleServo, clawLeftServo, clawRightServo, planeServo;
+
+
+
+    public RobotHardware(HardwareMap hw){
+        this.hw = hw;
     }
 
-    public void init(HardwareMap hw, Telemetry telemetry) {
-        this.telemetry = telemetry;
+
+
+
+    public void initialiseHardware(Telemetry telemetry) {
+        this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         allHubs = hw.getAll(LynxModule.class);
 
-        armMotor = initMotor(hw, "eh2", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        slideMotor = initMotor(hw, "ch2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FLT_Motor = initMotor(hw, "ch1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FLB_Motor = initMotor(hw, "ch0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FRT_Motor = initMotor(hw, "eh0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FRB_Motor = initMotor(hw, "eh1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        BT_Motor = initMotor(hw, "eh3", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        BB_Motor = initMotor(hw, "ch3", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        ArmMotor = initMotor(hw, "ch0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FLT_Motor = initMotor(hw, "ch2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FLB_Motor = initMotor(hw, "ch3", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FRT_Motor = initMotor(hw, "eh1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FRB_Motor = initMotor(hw, "eh0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        BT_Motor = initMotor(hw, "eh2", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        BB_Motor = initMotor(hw, "ch1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        //clawAngleServo = initServo(hw, "EHservo5", Servo.Direction.FORWARD);
+        clawAngleServo = initServo(hw, "CHservo0", Servo.Direction.FORWARD);
 
-        clawLeftServo = initServo(hw, "EHservo3", Servo.Direction.FORWARD);
-        clawRightServo = initServo(hw, "EHservo4", Servo.Direction.REVERSE);
-        clawAngleServo = initServo(hw, "EHservo0", Servo.Direction.REVERSE);
+        clawLeftServo = initServo(hw, "CHservo1", Servo.Direction.FORWARD);
+        clawRightServo = initServo(hw, "CHservo2", Servo.Direction.FORWARD);
 
-        planeServo = initServo(hw, "CHservo0", Servo.Direction.REVERSE);
+        planeServo = initServo(hw, "EHservo0", Servo.Direction.REVERSE);
         planeServo.setPosition(planeLockPosition);
 
-        limitIntake = hw.get(TouchSensor.class, "CHdigital1");
-        limitFL = hw.get(TouchSensor.class,"CHdigital2");
-        limitFR = hw.get(TouchSensor.class,"EHdigital0");
-        limitB = hw.get(TouchSensor.class,"EHdigital2");
+
+        frontLeftCalibrationSensor = hw.get(DigitalChannel.class,"CHdigital0");
+        frontRightCalibrationSensor = hw.get(DigitalChannel.class,"EHdigital1");
+        backCalibrationSensor = hw.get(DigitalChannel.class,"CHdigital1");
 
         imu = new RevIMU(hw, "imu");
         imu.init();
 
-        webcam = hw.get(WebcamName.class, "Webcam 1");
+        //webcam = hw.get(WebcamName.class, "Webcam 1");
     }
 
 
 
-    public void changeBulkCachingMode(LynxModule.BulkCachingMode mode){
+    public void setBulkCachingMode(LynxModule.BulkCachingMode mode){
         for (LynxModule module : allHubs) {
             module.setBulkCachingMode(mode);
         }
@@ -97,7 +114,7 @@ public class RobotHardware {
         motor.setDirection(direction);
         motor.setZeroPowerBehavior(zeroPowerBehavior);
         motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         return motor;
     }
 
@@ -105,5 +122,46 @@ public class RobotHardware {
         Servo servo = hw.get(Servo.class, servoPort);
         servo.setDirection(direction);
         return servo;
+    }
+
+
+
+    public void startIMUThread(LinearOpMode opMode){
+        imuThread = new Thread(() -> {
+            while (!opMode.isStopRequested() && opMode.opModeIsActive()) {
+                synchronized (imuLock) {
+                    imuAngle = imu.getRotation2d();
+                }
+            }
+        });
+        imuThread.start();
+    }
+
+
+    @Override
+    public void run(){
+        if (voltageTimer.seconds() > 4 || voltageDriveMultiplier == 0) {
+            double voltage = hw.voltageSensor.iterator().next().getVoltage();
+            voltageDriveMultiplier = clamp(voltage / nominalBatteryVoltage, 0.5, 1);
+            voltageTimer.reset();
+        }
+    }
+
+
+
+    public double getDriveMultiplierFromBatteryVoltage(){
+        return voltageDriveMultiplier;
+    }
+
+
+    public void updateIMUStupidMonkeyMethod(){
+        imuAngle = imu.getRotation2d();
+    }
+
+
+    public void getHardwareTelemetry(){
+        telemetry.addData("calibrationSensorFL", frontLeftCalibrationSensor.getState());
+        telemetry.addData("calibrationSensorFR", frontRightCalibrationSensor.getState());
+        telemetry.addData("calibrationSensorB", backCalibrationSensor.getState());
     }
 }

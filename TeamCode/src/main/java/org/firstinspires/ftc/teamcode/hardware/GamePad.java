@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.hardware;
-
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
-import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
@@ -13,10 +11,10 @@ public class GamePad extends GamepadEx {
 
     public double getTurnSpeed(){
         double rightY = super.getRightX();
-        if (super.getButton(GamepadKeys.Button.LEFT_BUMPER)){
+        if (gamepad.right_bumper){
             rightY *= 0.5;
         }
-        return -Math.signum(rightY) * Math.pow(rightY, 2);
+        return -rightY;
     }
 
     public Vector2d getJoystickVector(){
@@ -31,9 +29,16 @@ public class GamePad extends GamepadEx {
         vector2d = vector2d.div(maximumNotScaledDownSpeedInARectangularContour);
         vector2d = vector2d.scale(vector2d.magnitude());
 
-        if (super.getButton(GamepadKeys.Button.LEFT_BUMPER)){
-            vector2d = vector2d.scale(0.25);
+        if (gamepad.right_bumper){
+            vector2d = vector2d.scale(0.1);
         }
+
         return vector2d;
+    }
+
+
+
+    private double squareInput(double input){
+        return -Math.signum(input) * Math.pow(input, 2);
     }
 }

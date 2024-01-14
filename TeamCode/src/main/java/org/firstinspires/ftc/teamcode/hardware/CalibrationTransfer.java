@@ -12,6 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class CalibrationTransfer {
@@ -19,7 +20,7 @@ public class CalibrationTransfer {
     private final Telemetry telemetry;
     private final String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/FIRST/calibration.txt";
     private final List<String> calibrationList = new ArrayList<>();
-
+    public boolean hasWrote= false;
     private String[] array;
     public CalibrationTransfer(Telemetry telemetry){
         this.telemetry = telemetry;
@@ -32,8 +33,9 @@ public class CalibrationTransfer {
             FileWriter myWriter = new FileWriter(path);
             myWriter.write(robotAngle + "\n" + moduleAngles[0] + "\n" + moduleAngles[1] + "\n" + moduleAngles[2]);
             myWriter.close();
-            telemetry.addLine("Calibration saved!");
-            telemetry.update();
+            hasWrote=true;
+            //telemetry.addLine("Calibration saved!");
+            //telemetry.update();
         } catch (IOException e) {
             telemetry.addLine("Fatal error writing to file!");
             telemetry.update();
@@ -52,15 +54,17 @@ public class CalibrationTransfer {
 
                 calibrationList.add(data);
 
-                telemetry.addData("Reading calibration file", data);
-                telemetry.update();
+                //telemetry.addData("Reading calibration file", data);
+                //telemetry.update();
             }
+            myObj.delete();
             myReader.close();
         } catch (FileNotFoundException e) {
             telemetry.addLine("Fatal error reading from file!");
             telemetry.update();
             e.printStackTrace();
         }
+
         array = calibrationList.toArray(new String[0]);
         return new double[] {Double.parseDouble(array[1]), Double.parseDouble(array[2]), Double.parseDouble(array[3])};
     }
