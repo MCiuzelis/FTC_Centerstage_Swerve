@@ -1,55 +1,53 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.nominalBatteryVoltage;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLockPosition;
-
 import androidx.annotation.GuardedBy;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.RevIMU;
+import com.outoftheboxrobotics.photoncore.hardware.PhotonLynxVoltageSensor;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
-
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.List;
 
-public class RobotHardware implements Runnable{
+public class RobotHardware{
 
     Telemetry telemetry;
     HardwareMap hw;
 
-    public DcMotorEx FLT_Motor, FLB_Motor, FRT_Motor, FRB_Motor, BT_Motor, BB_Motor, ArmMotor;
+    public DcMotorEx FLT_Motor, FLB_Motor, FRT_Motor, FRB_Motor, BT_Motor, BB_Motor, SlideMotor;
+
+    public DigitalChannel frontRightCalibrationSensor, frontLeftCalibrationSensor, backCalibrationSensor;
+    List<LynxModule> allHubs;
+    PhotonLynxVoltageSensor voltageSensor;
+
+    public Servo clawAngleServo, clawLeftServo, clawRightServo, planeServo, axonLeft, axonRight;
+    public AnalogInput armAxonEncoder;
+
+
 
     private final Object imuLock = new Object();
     @GuardedBy("imuLock")
     public RevIMU imu;
-    Thread imuThread;
+    public Rotation2d imuAngle = new Rotation2d();
 
+    private final Object distanceSensorLock = new Object();
+    @GuardedBy("distanceSensorLock")
+    public DistanceSensor distanceSensor;
+    public double distance = 0;
 
-    ElapsedTime voltageTimer = new ElapsedTime();
-    double voltageDriveMultiplier = 1;
-
-
-    public DigitalChannel frontRightCalibrationSensor, frontLeftCalibrationSensor, backCalibrationSensor;
-    List<LynxModule> allHubs;
-
-
-    public Rotation2d imuAngle = Rotation2d.fromDegrees(0);
-    public Servo clawAngleServo, clawLeftServo, clawRightServo, planeServo;
-
+    Thread imuThread, distanceSensorThread;
 
 
     public RobotHardware(HardwareMap hw){
@@ -63,33 +61,50 @@ public class RobotHardware implements Runnable{
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         allHubs = hw.getAll(LynxModule.class);
+        voltageSensor = hw.getAll(PhotonLynxVoltageSensor.class).iterator().next();
 
-        ArmMotor = initMotor(hw, "ch0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        //distanceSensor = hw.get(SensorREV2mDistance.class, "distanceSensor");
+
+
+        SlideMotor = initMotor(hw, "ch0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLT_Motor = initMotor(hw, "ch2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FLB_Motor = initMotor(hw, "ch3", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FRT_Motor = initMotor(hw, "eh1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        FRB_Motor = initMotor(hw, "eh0", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        BT_Motor = initMotor(hw, "eh2", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
-        BB_Motor = initMotor(hw, "ch1", DcMotorEx.Direction.REVERSE, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FLB_Motor = initMotor(hw, "ch3", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FRT_Motor = initMotor(hw, "eh1", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FRB_Motor = initMotor(hw, "eh0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        BT_Motor = initMotor(hw, "eh2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
+        BB_Motor = initMotor(hw, "ch1", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        clawAngleServo = initServo(hw, "CHservo0", Servo.Direction.FORWARD);
+        clawAngleServo = initServo(hw, "EHservo4", Servo.Direction.REVERSE);
 
-        clawLeftServo = initServo(hw, "CHservo1", Servo.Direction.FORWARD);
-        clawRightServo = initServo(hw, "CHservo2", Servo.Direction.FORWARD);
+        clawLeftServo = initServo(hw, "CHservo3", Servo.Direction.REVERSE);
+        clawRightServo = initServo(hw, "CHservo4", Servo.Direction.FORWARD);
+
+        axonLeft = initServo(hw, "EHservo3", Servo.Direction.FORWARD);
+        axonRight = initServo(hw, "EHservo2", Servo.Direction.FORWARD);
+
 
         planeServo = initServo(hw, "EHservo0", Servo.Direction.REVERSE);
         planeServo.setPosition(planeLockPosition);
-
 
         frontLeftCalibrationSensor = hw.get(DigitalChannel.class,"CHdigital0");
         frontRightCalibrationSensor = hw.get(DigitalChannel.class,"EHdigital1");
         backCalibrationSensor = hw.get(DigitalChannel.class,"CHdigital1");
 
-        imu = new RevIMU(hw, "imu");
-        imu.init();
+        armAxonEncoder = hw.get(AnalogInput.class, "axonArmEncoder");
+
+        synchronized (imuLock) {
+            imu = new RevIMU(hw, "imu");
+            imu.init();
+        }
+
+        synchronized (distanceSensorLock){
+            distanceSensor = hw.get(DistanceSensor.class, "distanceSensor");
+        }
 
         //webcam = hw.get(WebcamName.class, "Webcam 1");
     }
+
+
 
 
 
@@ -99,22 +114,17 @@ public class RobotHardware implements Runnable{
         }
     }
 
-
-
     public void clearBulkCache(){
         for (LynxModule module : allHubs) {
             module.clearBulkCache();
         }
     }
 
-
-
     private DcMotorEx initMotor(HardwareMap hw, String motorPort, DcMotorEx.Direction direction, DcMotorEx.ZeroPowerBehavior zeroPowerBehavior) {
         DcMotorEx motor = hw.get(DcMotorEx.class, motorPort);
         motor.setDirection(direction);
         motor.setZeroPowerBehavior(zeroPowerBehavior);
-        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         return motor;
     }
 
@@ -123,8 +133,6 @@ public class RobotHardware implements Runnable{
         servo.setDirection(direction);
         return servo;
     }
-
-
 
     public void startIMUThread(LinearOpMode opMode){
         imuThread = new Thread(() -> {
@@ -137,20 +145,19 @@ public class RobotHardware implements Runnable{
         imuThread.start();
     }
 
-
-    @Override
-    public void run(){
-        if (voltageTimer.seconds() > 4 || voltageDriveMultiplier == 0) {
-            double voltage = hw.voltageSensor.iterator().next().getVoltage();
-            voltageDriveMultiplier = clamp(voltage / nominalBatteryVoltage, 0.5, 1);
-            voltageTimer.reset();
-        }
+    public void startDistanceSensorThread(LinearOpMode opMode){
+        distanceSensorThread = new Thread(() -> {
+            while (!opMode.isStopRequested() && opMode.opModeIsActive()) {
+                synchronized (distanceSensorLock) {
+                    distance = distanceSensor.getDistance(DistanceUnit.CM);
+                }
+            }
+        });
+        imuThread.start();
     }
 
-
-
-    public double getDriveMultiplierFromBatteryVoltage(){
-        return voltageDriveMultiplier;
+    public double getVoltage(){
+        return voltageSensor.getCachedVoltage();
     }
 
 
@@ -158,8 +165,7 @@ public class RobotHardware implements Runnable{
         imuAngle = imu.getRotation2d();
     }
 
-
-    public void getHardwareTelemetry(){
+    public void getCalibrationSensorTelemetry(){
         telemetry.addData("calibrationSensorFL", frontLeftCalibrationSensor.getState());
         telemetry.addData("calibrationSensorFR", frontRightCalibrationSensor.getState());
         telemetry.addData("calibrationSensorB", backCalibrationSensor.getState());

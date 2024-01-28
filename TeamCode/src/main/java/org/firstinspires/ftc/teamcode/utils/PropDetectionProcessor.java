@@ -1,6 +1,9 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.utils;
 
 import android.graphics.Canvas;
+
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -14,7 +17,8 @@ import java.util.List;
 
 public class PropDetectionProcessor extends Thread implements VisionProcessor {
 
-    private static final String FILE_NAME = "/sdcard/FIRST/tflitemodels/ssd_prop_meta_four.tflite";
+    private static final String FILE_NAME = "/sdcard/FIRST/tflitemodels/ssd_prop_meta_step_300000.tflite";
+    //private static final String FILE_NAME = "/sdcard/ssd_prop_meta_step_100000.tflite";
     private static final String[] LABELS = {
             "b", "r",
     };
@@ -23,7 +27,10 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
     public TfodProcessor ODproc;
     Telemetry telemetry;
     public POSITION propPosition = POSITION.UNKNOWN;
+    public COLOR propColor = COLOR.UNKNOWN;
     boolean stopThread = false;
+
+
 
     public enum POSITION{
         LEFT,
@@ -32,17 +39,23 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
         UNKNOWN
     }
 
+    public enum COLOR{
+        RED,
+        BLUE,
+        UNKNOWN
+    }
+
     public void Init(Telemetry telemetry){
-        this.telemetry = telemetry;
+        this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         ODproc = new TfodProcessor.Builder()
                 .setIsModelQuantized(true)
-                .setModelInputSize(240)
+                .setModelInputSize(320)
                 .setIsModelTensorFlow2(true)
                 .setMaxNumRecognitions(4)
                 .setModelFileName(FILE_NAME)
                 .setModelLabels(LABELS)
                 .build();
-        ODproc.setMinResultConfidence(0.5f);
+        ODproc.setMinResultConfidence(0.6f);
 
 
         //telemetryTfod();
@@ -76,6 +89,11 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
 
         if (currentRecognitions.size() != 0){
             Recognition propDetection = currentRecognitions.get(0);
+            if (propDetection.getLabel() == "r"){
+                propColor = COLOR.RED;
+            } else if (propDetection.getLabel() =="b") {
+                propColor = COLOR.BLUE;
+            }
             telemetry.addData("Angle", propDetection.estimateAngleToObject(AngleUnit.DEGREES));
             if (propDetection.estimateAngleToObject(AngleUnit.DEGREES) * -1 > 5){
                 propPosition = POSITION.LEFT;

@@ -13,13 +13,14 @@ import com.ThermalEquilibrium.homeostasis.Controllers.Feedforward.BasicFeedforwa
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
+import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 
 
-public class SwerveModule {
+public class SwerveModule implements Runnable{
     Telemetry telemetry;
 
     DcMotorEx TopMotor, BottomMotor;
@@ -32,8 +33,6 @@ public class SwerveModule {
     double prevDrivingVelocity;
 
     boolean DEBUG_MODE;
-
-    Thread startCalibration;
 
 
 
@@ -52,26 +51,21 @@ public class SwerveModule {
 
 
     public double getTurnCorrection(double targetAngle, PIDEx PID) {
-        double currentAngle = normalise(getAngleRads());
-
-
-        telemetry.addData("currentAngle", currentAngle);
+        double currentAngle = getNormalisedAngleRads();
         double adjustedTargetAngle = targetAngle;
 
         double error = adjustedTargetAngle - currentAngle;
 
-        if (Math.abs(error) > Math.toRadians(180)){
+        if (Math.abs(error) > Math.PI){
             adjustedTargetAngle -= Math.signum(error) * 2d * Math.PI;
             error = adjustedTargetAngle - currentAngle;
         }
 
-        if (Math.abs(error) > Math.toRadians(95)) {
+        if (Math.abs(error) > Math.toRadians(92)) {
             adjustedTargetAngle -= Math.signum(error) * Math.PI;
             driveSpeedMultiplier = -1;
         } else driveSpeedMultiplier = 1;
 
-
-        telemetry.addData("TargetAngle", Math.toDegrees(adjustedTargetAngle));
 
         if (DEBUG_MODE) {
             telemetry.addData("currentAngle", Math.toDegrees(currentAngle));
@@ -94,8 +88,8 @@ public class SwerveModule {
             adjustedTargetVelocity = targetVelocity * currentVelocityMultiplier + prevDrivingVelocity * (1d - currentVelocityMultiplier);
         } else adjustedTargetVelocity = targetVelocity;
 
-        prevDrivingVelocity = adjustedTargetVelocity;
         adjustedTargetVelocity *= driveSpeedMultiplier;
+        prevDrivingVelocity = adjustedTargetVelocity;
 
         if (DEBUG_MODE) {
             telemetry.addData("targetVelocity", targetVelocity * driveSpeedMultiplier);
@@ -110,31 +104,41 @@ public class SwerveModule {
 
 
 
+    public Vector2d getModuleMotorVelocities(double targetDriveVelocity, BasicFeedforward driveFeedforward,
+                                             PIDEx drivePID, double targetAngle, PIDEx turnPID, double turnMultiplier){
+        return new Vector2d(
+                getDriveCorrection(targetDriveVelocity, driveFeedforward, drivePID),
+                getTurnCorrection(targetAngle, turnPID) * turnMultiplier).rotateBy(-45);
+    }
+
+
+
+    @Override
+    public void run(){
+        calibrate();
+    }
+
+
+
     public void calibrate() {
-        startCalibration = new Thread(() -> {
-            while (calibrationSensor.getState()) setModuleVelocity(fastCalibrationSpeed);
-            while (!calibrationSensor.getState()) setModuleVelocity(fastCalibrationSpeed);
+        while (calibrationSensor.getState()) setModuleVelocity(fastCalibrationSpeed);
+        while (!calibrationSensor.getState()) setModuleVelocity(fastCalibrationSpeed);
 
-            double startAngle = getAngleDegrees();
-            while (getAngleDegrees() < startAngle + 20) setModuleVelocity(fastCalibrationSpeed);
-            while (!calibrationSensor.getState()) setModuleVelocity(slowCalibrationSpeed);
+        double startAngle = getAngleDegrees();
+        while (getAngleDegrees() < startAngle + 20) setModuleVelocity(fastCalibrationSpeed);
+        while (!calibrationSensor.getState()) setModuleVelocity(slowCalibrationSpeed);
 
-            setModuleVelocity(0);
-            resetModuleEncoders();
-        });
-        startCalibration.start();
+        setModuleVelocity(0);
+        resetModuleEncoders();
     }
 
 
 
     public double getAngleTicks() {return (TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / 2d;}
 
-    public double getAngleRads() {
-        telemetry.addData("before offset", getAngleTicks() / ticksInOneRad);
-        return getAngleTicks() / ticksInOneRad + angleOffset;
-    }
+    public double getAngleRads() {return getAngleTicks() / ticksInOneRad + angleOffset;}
 
-    public double forteleop(){return normalise(getAngleRads());}
+    public double getNormalisedAngleRads() {return normalise(getAngleRads());}
 
     public double getAngleDegrees() {return Math.toDegrees(getAngleRads());}
 
@@ -151,18 +155,11 @@ public class SwerveModule {
 
     public double normalise(double angle) {
         double normalisedAngle = angle;
-        telemetry.addData("angle rads", angle);
 
-        while (Math.abs(normalisedAngle) > 2d * Math.PI){
-            normalisedAngle -= Math.signum(angle) * 2d * Math.PI;
-        }
-        if (Math.abs(normalisedAngle) > Math.PI) {
-            normalisedAngle -= 2d * Math.PI * Math.signum(normalisedAngle);
-        }
-
+        while (Math.abs(normalisedAngle) > 2d * Math.PI) normalisedAngle -= Math.signum(angle) * 2d * Math.PI;
+        if (Math.abs(normalisedAngle) > Math.PI) normalisedAngle -= 2d * Math.PI * Math.signum(normalisedAngle);
         return normalisedAngle;
     }
-
 
     public void resetModuleEncoders() {
         stopMotors();
@@ -172,18 +169,20 @@ public class SwerveModule {
         BottomMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
-
     public void stopMotors() {
         TopMotor.setPower(0);
         BottomMotor.setPower(0);
     }
-
 
     public void setPower(double power) {
         TopMotor.setPower(power);
         BottomMotor.setPower(power);
     }
 
+    public void setPowers(double topPower, double bottomPower) {
+        TopMotor.setPower(topPower);
+        BottomMotor.setPower(bottomPower);
+    }
 
     public void setTurnPower(double turnPower) {
         double output = turnPower * finalAllMotorVelocityMultiplier;
@@ -191,20 +190,17 @@ public class SwerveModule {
         BottomMotor.setPower(output);
     }
 
-
     public void setDrivePower(double drivePower) {
         double output = drivePower * finalAllMotorVelocityMultiplier;
         TopMotor.setPower(output);
         BottomMotor.setPower(-output);
     }
 
-
     public void setDrivePowerInverted(double drivePower) {
         double output = drivePower * finalAllMotorVelocityMultiplier;
         TopMotor.setPower(-output);
         BottomMotor.setPower(output);
     }
-
 
     public void setTurnAndDrivePower(double turnPower, double drivePower) {
         TopMotor.setPower((turnPower + drivePower) * finalAllMotorVelocityMultiplier);

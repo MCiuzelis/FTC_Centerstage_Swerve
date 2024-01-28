@@ -11,6 +11,7 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.SwerveVelocityConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -25,7 +26,7 @@ import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.Traj
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequenceRunner;
 
 @Disabled
-@Config
+//@Config
 @Autonomous(name = "CTurn Test", group = "OpMode:Test")
 public class TrajectoryFollowerTurnTest extends OpMode {
 
@@ -97,9 +98,6 @@ public class TrajectoryFollowerTurnTest extends OpMode {
                 .build();
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(trajectoryFollower, new PIDCoefficients(RotationKp, RotationKi, RotationKd));
-
-        armThread = new Thread(arm);
-
     }
 
     @Override
@@ -208,11 +206,11 @@ public class TrajectoryFollowerTurnTest extends OpMode {
 
 
         if (impulse != null){
-            swerve.drive(driveCorrection, turnCorrection);
+            swerve.drive(new com.arcrobotics.ftclib.geometry.Pose2d(driveCorrection.getX(), driveCorrection.getY(), new Rotation2d()));
         }
 
         else{
-            swerve.drive(new com.arcrobotics.ftclib.geometry.Vector2d(0,0), 0);
+            swerve.drive();
             swerve.stopAllMotors();
         }
 

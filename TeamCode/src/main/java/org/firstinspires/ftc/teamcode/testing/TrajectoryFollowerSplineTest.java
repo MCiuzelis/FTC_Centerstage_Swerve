@@ -10,6 +10,7 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.SwerveVelocityConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -22,7 +23,7 @@ import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.Traj
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequenceRunner;
 
 @Disabled
-@Config
+//@Config
 @Autonomous(name = "Spline Test", group = "OpMode:Test")
 public class TrajectoryFollowerSplineTest extends OpMode {
 
@@ -128,7 +129,7 @@ public class TrajectoryFollowerSplineTest extends OpMode {
         normalizedVector = new com.arcrobotics.ftclib.geometry.Vector2d(normalizeVector(impulse).component1().getY(), normalizeVector(impulse).component1().getX());
 
         if (impulse != null){
-            swerve.drive(normalizedVector, 0);
+            swerve.drive(new com.arcrobotics.ftclib.geometry.Pose2d(normalizedVector.getX(), normalizedVector.getY(), new Rotation2d()));
         }
 //        if (impulse != null){
 //            if (!trajectorySequenceRunner.isBusy()){
@@ -137,7 +138,7 @@ public class TrajectoryFollowerSplineTest extends OpMode {
 //            }
 //        }
         else{
-            swerve.drive(new com.arcrobotics.ftclib.geometry.Vector2d(0,0), 0);
+            swerve.drive();
             swerve.stopAllMotors();
             telemetry.addLine("Halt");
         }

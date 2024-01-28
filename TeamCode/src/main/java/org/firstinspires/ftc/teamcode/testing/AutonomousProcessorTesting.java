@@ -8,13 +8,12 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.PropDetectionProcessor;
-import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
+import org.firstinspires.ftc.teamcode.utils.PropDetectionProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 @Disabled
-@Config
+//@Config
 @TeleOp(name = "Processor test", group = "Test")
 public class AutonomousProcessorTesting extends LinearOpMode {
     VisionPortal.Builder portalBuilder;

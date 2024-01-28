@@ -1,27 +1,30 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLaunchPosition;
+import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLockPosition;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.command.CommandOpMode;
+import com.arcrobotics.ftclib.command.CommandScheduler;
+import com.arcrobotics.ftclib.command.InstantCommand;
+import com.arcrobotics.ftclib.command.Robot;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
+import com.arcrobotics.ftclib.geometry.Pose2d;
+import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.commands.SetArmPositionCommand;
-import org.firstinspires.ftc.teamcode.commands.SetClawAngleCommand;
-import org.firstinspires.ftc.teamcode.commands.SetClawStateCommand;
-import org.firstinspires.ftc.teamcode.hardware.CalibrationTransfer;
+import org.firstinspires.ftc.teamcode.commands.DepositPixelsCommand;
+import org.firstinspires.ftc.teamcode.commands.SetArmToStateCommand;
+import org.firstinspires.ftc.teamcode.commands.lowLevelCommands.SetClawStateCommand;
 import org.firstinspires.ftc.teamcode.hardware.GamePad;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
+import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
 
-
-@Config
+@Photon
 @TeleOp(name = "😇")
 
 
@@ -32,13 +35,15 @@ public class MainTeleOp extends CommandOpMode {
     ArmSubsystem armSubsystem;
     GamePad gamePad;
 
-    boolean isOpModeStarted = false;
+    double loopTime = 0;
+    boolean opModeStarted = false;
 
 
 
 
     @Override
     public void initialize() {
+        CommandScheduler.getInstance().reset();
         hardware = new RobotHardware(hardwareMap);
         hardware.initialiseHardware(telemetry);
         hardware.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
@@ -58,6 +63,7 @@ public class MainTeleOp extends CommandOpMode {
                 swerve = new DrivetrainSubsystem(hardware, telemetry, false);
                 telemetry.addLine("initialising standard teleOp");
                 telemetry.addLine("waiting for start ✅");
+                swerve.resetAllEncoders();
                 break;
             } else if (gamepad1.cross) {
                 double [] angles = file.pullModuleAngleOffsets();
@@ -67,7 +73,8 @@ public class MainTeleOp extends CommandOpMode {
                 telemetry.addData("2", angles[2]);
                 telemetry.addData("heading", heading);
 
-                swerve = new DrivetrainSubsystem(hardware, telemetry, angles, heading, true);
+
+                swerve = new DrivetrainSubsystem(hardware, telemetry, new double[]{0, 0, 0}, heading, false);
                 telemetry.addLine("read from file");
                 telemetry.addLine("waiting for start ✅");
                 break;
@@ -78,18 +85,29 @@ public class MainTeleOp extends CommandOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         gamePad = new GamePad(gamepad1);
 
-        swerve.stopAllMotors();
-        swerve.resetAllEncoders();
+        gamePad.getGamepadButton(GamepadKeys.Button.Y)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.HIGH)));
+        gamePad.getGamepadButton(GamepadKeys.Button.B)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)));
+        gamePad.getGamepadButton(GamepadKeys.Button.X)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.MID)));
+        gamePad.getGamepadButton(GamepadKeys.Button.A)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.TRANSFER)));
+        gamePad.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)));
+        gamePad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
+                .toggleWhenPressed(()-> schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_OPEN)),
+                                   ()-> schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)));
 
-
-
-        gamePad.getGamepadButton(GamepadKeys.Button.B).whenPressed(new SetArmPositionCommand(armSubsystem, ArmSubsystem.ARM_TARGET_POSITION.HIGHPOS));
-        gamePad.getGamepadButton(GamepadKeys.Button.Y).whenPressed(new SetArmPositionCommand(armSubsystem, ArmSubsystem.ARM_TARGET_POSITION.MIDPOS));
-        gamePad.getGamepadButton(GamepadKeys.Button.X).whenPressed(new SetArmPositionCommand(armSubsystem, ArmSubsystem.ARM_TARGET_POSITION.PICKUP));
-        gamePad.getGamepadButton(GamepadKeys.Button.A).whenPressed(new SetArmPositionCommand(armSubsystem, ArmSubsystem.ARM_TARGET_POSITION.LOWPOS));
-        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_LEFT).whenPressed(new SetArmPositionCommand(armSubsystem, ArmSubsystem.ARM_TARGET_POSITION.TRANSFER));
-        gamePad.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER).toggleWhenPressed(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_OPEN), new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED));
-        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_DOWN).toggleWhenPressed(new SetClawAngleCommand(armSubsystem, ArmSubsystem.CLAW_ANGLE.PICKUP), new SetClawAngleCommand(armSubsystem, ArmSubsystem.CLAW_ANGLE.HIGHPOS));
+        //EXPERIMENTAL, DO AT YOUR OWN RISK:
+        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
+                        .whenPressed(()-> schedule(new DepositPixelsCommand(armSubsystem, swerve)));
+//        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
+//                .whileHeld(()-> schedule(new InstantCommand(()-> swerve.setModeToMaintainDistance(Math.toRadians(90), 100))))
+//                .whenReleased(()-> schedule(new InstantCommand(()-> swerve.setModeToManual())));
+        gamePad.getGamepadButton(GamepadKeys.Button.START)
+                .toggleWhenPressed(()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLaunchPosition))),
+                                   ()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLockPosition))));
     }
 
 
@@ -98,25 +116,26 @@ public class MainTeleOp extends CommandOpMode {
 
     @Override
     public void run(){
-        hardware.clearBulkCache();
-        super.run();
-
-
-        if (!isOpModeStarted){
+        if (!opModeStarted){
             hardware.startIMUThread(this);
-            Thread voltageThread = new Thread(hardware);
-            voltageThread.start();
-            isOpModeStarted = true;
+            //hardware.startDistanceSensorThread(this);
+            opModeStarted = true;
         }
-        swerve.drive(gamePad.getJoystickVector().scale(hardware.getDriveMultiplierFromBatteryVoltage()), gamePad.getTurnSpeed());
+
+        hardware.clearBulkCache();
+        swerve.drive(gamePad.getGamepadInput());
+        CommandScheduler.getInstance().run();
+
+        swerve.loop();
 
 
-        if (gamepad1.options) hardware.planeServo.setPosition(planeLaunchPosition);
+        double loop = System.nanoTime();
+        telemetry.addData("loop time ms",  1000000000 / (loop - loopTime));
+        loopTime = loop;
 
-
-        if (isStopRequested()) {
-            while (!file.hasWrote) file.PushCalibrationData(hardware.imu.getRotation2d().getRadians(), swerve.getAllModuleAngleRads());
-        }
         telemetry.update();
+
+
+        if (isStopRequested()) while (!file.hasWrote) file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
     }
 }

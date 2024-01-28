@@ -1,18 +1,13 @@
-package org.firstinspires.ftc.teamcode.hardware;
+package org.firstinspires.ftc.teamcode.utils;
 
 import android.os.Environment;
-
-import com.arcrobotics.ftclib.geometry.Rotation2d;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Scanner;
 
 public class CalibrationTransfer {
@@ -34,8 +29,6 @@ public class CalibrationTransfer {
             myWriter.write(robotAngle + "\n" + moduleAngles[0] + "\n" + moduleAngles[1] + "\n" + moduleAngles[2]);
             myWriter.close();
             hasWrote=true;
-            //telemetry.addLine("Calibration saved!");
-            //telemetry.update();
         } catch (IOException e) {
             telemetry.addLine("Fatal error writing to file!");
             telemetry.update();
@@ -51,11 +44,7 @@ public class CalibrationTransfer {
             Scanner myReader = new Scanner(myObj);
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
-
                 calibrationList.add(data);
-
-                //telemetry.addData("Reading calibration file", data);
-                //telemetry.update();
             }
             myObj.delete();
             myReader.close();
