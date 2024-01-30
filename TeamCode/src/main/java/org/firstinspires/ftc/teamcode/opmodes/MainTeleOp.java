@@ -1,16 +1,10 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLaunchPosition;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLockPosition;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.CommandScheduler;
-import com.arcrobotics.ftclib.command.InstantCommand;
-import com.arcrobotics.ftclib.command.Robot;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
-import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -85,29 +79,30 @@ public class MainTeleOp extends CommandOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         gamePad = new GamePad(gamepad1);
 
+
         gamePad.getGamepadButton(GamepadKeys.Button.Y)
                 .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.HIGH)));
-        gamePad.getGamepadButton(GamepadKeys.Button.B)
-                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)));
         gamePad.getGamepadButton(GamepadKeys.Button.X)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.TRANSFER)));
+        gamePad.getGamepadButton(GamepadKeys.Button.B)
                 .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.MID)));
         gamePad.getGamepadButton(GamepadKeys.Button.A)
-                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.TRANSFER)));
-        gamePad.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
-                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)));
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)));
         gamePad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
+                .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)));
+        gamePad.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
                 .toggleWhenPressed(()-> schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_OPEN)),
                                    ()-> schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)));
-
-        //EXPERIMENTAL, DO AT YOUR OWN RISK:
-        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
+        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_LEFT)
                         .whenPressed(()-> schedule(new DepositPixelsCommand(armSubsystem, swerve)));
 //        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
-//                .whileHeld(()-> schedule(new InstantCommand(()-> swerve.setModeToMaintainDistance(Math.toRadians(90), 100))))
+//                .whileHeld(()-> schedule(new InstantCommand(()-> swerve.setModeToMaintainDistance(Math.toRadians(90), 12))))
 //                .whenReleased(()-> schedule(new InstantCommand(()-> swerve.setModeToManual())));
-        gamePad.getGamepadButton(GamepadKeys.Button.START)
-                .toggleWhenPressed(()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLaunchPosition))),
-                                   ()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLockPosition))));
+//        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_DOWN)
+//                .whenPressed(()-> schedule(new InstantCommand(()-> swerve.resetImuOffset())));
+//        gamePad.getGamepadButton(GamepadKeys.Button.START)
+//                .toggleWhenPressed(()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLaunchPosition))),
+//                                   ()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLockPosition))));
     }
 
 
@@ -118,20 +113,22 @@ public class MainTeleOp extends CommandOpMode {
     public void run(){
         if (!opModeStarted){
             hardware.startIMUThread(this);
-            //hardware.startDistanceSensorThread(this);
+            hardware.startDistanceSensorThread(this);
             opModeStarted = true;
         }
+
 
         hardware.clearBulkCache();
         swerve.drive(gamePad.getGamepadInput());
         CommandScheduler.getInstance().run();
-
         swerve.loop();
 
 
         double loop = System.nanoTime();
         telemetry.addData("loop time ms",  1000000000 / (loop - loopTime));
+        telemetry.addData("imuAngle", hardware.imuAngle.getDegrees());
         loopTime = loop;
+        telemetry.addData("distance: ", hardware.distance);
 
         telemetry.update();
 

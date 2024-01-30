@@ -61,7 +61,7 @@ public class SwerveModule implements Runnable{
             error = adjustedTargetAngle - currentAngle;
         }
 
-        if (Math.abs(error) > Math.toRadians(92)) {
+        if (Math.abs(error) > Math.toRadians(94)) {
             adjustedTargetAngle -= Math.signum(error) * Math.PI;
             driveSpeedMultiplier = -1;
         } else driveSpeedMultiplier = 1;
@@ -80,15 +80,15 @@ public class SwerveModule implements Runnable{
 
 
     public double getDriveCorrection(double targetVelocity, BasicFeedforward feedforward, PIDEx PID) {
+        targetVelocity *= driveSpeedMultiplier;
+
         double error = targetVelocity - prevDrivingVelocity;
         double adjustedTargetVelocity;
 
         if (Math.abs(error) > DriveBaseMaxDriveAcceleration) {
-            double currentVelocityMultiplier = DriveBaseMaxDriveAcceleration / Math.abs(error);
-            adjustedTargetVelocity = targetVelocity * currentVelocityMultiplier + prevDrivingVelocity * (1d - currentVelocityMultiplier);
+            adjustedTargetVelocity = prevDrivingVelocity + Math.signum(error) * DriveBaseMaxDriveAcceleration;
         } else adjustedTargetVelocity = targetVelocity;
 
-        adjustedTargetVelocity *= driveSpeedMultiplier;
         prevDrivingVelocity = adjustedTargetVelocity;
 
         if (DEBUG_MODE) {

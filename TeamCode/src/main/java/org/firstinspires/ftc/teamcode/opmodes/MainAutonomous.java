@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import static org.firstinspires.ftc.teamcode.hardware.Constants.clawPickupPos;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -12,24 +13,28 @@ import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationCon
 import com.acmerobotics.roadrunner.trajectory.constraints.SwerveVelocityConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
 import com.arcrobotics.ftclib.command.CommandOpMode;
+import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
+import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.utils.PropDetectionProcessor;
-import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
-import org.firstinspires.ftc.teamcode.utils.Trajectories;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequenceRunner;
+import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
+import org.firstinspires.ftc.teamcode.utils.PropDetectionProcessor;
+import org.firstinspires.ftc.teamcode.utils.Trajectories;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
+@Photon
 @Config
 @Autonomous(name = "😈")
 
@@ -48,9 +53,6 @@ public class MainAutonomous extends CommandOpMode {
     public static double RotationKi = 0.0005;
     public static double RotationKd = 0.1;
 
-//    public static double RotationKp = 1.25;
-//    public static double RotationKi = 0.0005;
-//    public static double RotationKd = 2;
 
     public static double base = 10;
     public static double width = 10;
@@ -64,6 +66,11 @@ public class MainAutonomous extends CommandOpMode {
     boolean autoStartingCloseToBackBoard;
 
     double odometryTickToInchRatio =  ((((1+(46d/17d))) * (1+(46d/17))) * 28) / ((25d  / 18) * 2 * Math.PI * 1.5f);
+
+//    ElapsedTime headingTimer = new ElapsedTime();
+//    LowPassFilter headingFilter = new LowPassFilter(0.9);
+//    double prevTime = 0;
+//    double prevHeading = 0;
 
 
     VisionPortal.Builder portalBuilder;
@@ -157,7 +164,9 @@ public class MainAutonomous extends CommandOpMode {
         }
 
 
-        super.run();
+        hardware.clearBulkCache();
+        CommandScheduler.getInstance().run();
+        swerve.loop();
         swerve.updateOdometryFromMotorEncoders();
 
         robotPosition = new com.acmerobotics.roadrunner.geometry.Pose2d(
@@ -197,7 +206,6 @@ public class MainAutonomous extends CommandOpMode {
             requestOpModeStop();
         }
         telemetry.update();
-        hardware.clearBulkCache();
     }
 
 
@@ -235,7 +243,7 @@ public class MainAutonomous extends CommandOpMode {
 
 
 
-    private Pose2d getCorrection (DriveSignal signal){
+    private Pose2d getCorrection (DriveSignal signal) {
         if (signal != null) {
             Translation2d driveVelocityCorrection = new Translation2d(-signal.getVel().getY(), signal.getVel().getX());
             Translation2d driveAccelerationCorrection = new Translation2d(-signal.getAccel().getY(), signal.getVel().getX());
@@ -244,7 +252,6 @@ public class MainAutonomous extends CommandOpMode {
 
             double headingCorrection = signal.getVel().getHeading() * rotationKv + signal.getAccel().getHeading() * rotationKa;
             return new Pose2d(driveVelocityCorrection.plus(driveAccelerationCorrection), new Rotation2d(headingCorrection));
-        }
-        else return new Pose2d();
+        } else return new Pose2d();
     }
 }

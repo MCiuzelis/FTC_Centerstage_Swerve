@@ -36,7 +36,6 @@ public class ArmSubsystem extends SubsystemBase {
     public static double slowDownDistance = 150;
 
     public static double kP = 0.012;
-    public static double kI = 0;
     public static double kD = 0;
     public static double kG = 0.013;
 
@@ -46,7 +45,7 @@ public class ArmSubsystem extends SubsystemBase {
     public static double axonMidPos = 0.85;
     public static double axonLowPos = 0.95;
     public static double axonPickupPos = 0.02;
-    public static double axonTransferPos = 0.2;
+    public static double axonTransferPos = 0.15;
 
     double prevSlideTargetPos = 0;
     double prevMotorPos = 0;
@@ -55,7 +54,7 @@ public class ArmSubsystem extends SubsystemBase {
 
     double slideErrorMargin = 10;
 
-    PIDController pid = new PIDController(kP, kI, kD);
+    PIDController pid = new PIDController(kP, 0, kD);
     LowPassFilter filter = new LowPassFilter(lowPassGain);
     ElapsedTime profileTimer = new ElapsedTime();
 
@@ -178,7 +177,8 @@ public class ArmSubsystem extends SubsystemBase {
     public void periodic() {
         double armAngleRads = robot.armAxonEncoder.getVoltage() / 1.65d * Math.PI;
         telemetry.addData("AxonAngle", Math.toDegrees(armAngleRads));
-        pid.setPID(kP, kI, kD);
+
+        pid.setPID(kP, 0, kD);
 
         double currentMotorPos = robot.SlideMotor.getCurrentPosition();
 

@@ -26,7 +26,7 @@ public class GamePad extends GamepadEx {
 
         double turn = -super.getRightX();
 
-        if (gamepad.right_trigger > 0.9){
+        if (gamepad.right_trigger > 0.1){
             drive = drive.scale(0.1);
             turn *= 0.5;
         }

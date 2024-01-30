@@ -48,6 +48,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 
+@Config
 public class DrivetrainSubsystem extends SubsystemBase {
 
     RobotHardware hardware;
@@ -81,8 +82,12 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
 
     DRIVETRAIN_STATE currentState = DRIVETRAIN_STATE.FULLY_MANUAL;
-    PIDController backboardPositionController = new PIDController(0, 0, 0);
-    public double targetDistance = 100;
+
+    public double targetDistance = 0;
+    public static double kP = 0.06;
+    public static double kI = 0.01;
+    public static double kD = 0;
+    PIDController backboardPositionController = new PIDController(kP, kI, kD);
 
 
 
@@ -111,6 +116,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
      public void loop(){
 
+         ChassisSpeeds chassisSpeed = getChassisSpeedFromEncoders();
+         double turnVelocityMultiplier = getTurnVelocityMultiplier(chassisSpeed);
+
          SwerveModuleState[] moduleStates = translateChassisSpeedToModuleStates(
                  driveInput,
                  hardware.imuAngle.plus(imuOffset));
@@ -119,12 +127,12 @@ public class DrivetrainSubsystem extends SubsystemBase {
          SwerveModuleState frontRight = moduleStates[1];
          SwerveModuleState back = moduleStates[2];
 
-
          if (frontLeft.speedMetersPerSecond != 0) frontLeftModuleAngle = frontLeft.angle;
          if (frontRight.speedMetersPerSecond != 0) frontRightModuleAngle = frontRight.angle;
          if (back.speedMetersPerSecond != 0) backModuleAngle = back.angle;
 
-         double turnVelocityMultiplier = getTurnVelocityMultiplier(getChassisSpeedFromEncoders());
+
+         //double turnVelocityMultiplier = 1;
 
          //old begin
 //         double frontLeftTurnCorrection = FrontLeft.getTurnCorrection(frontLeftModuleAngle.getRadians(), turnPID) * turnVelocityMultiplier;
@@ -198,8 +206,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
                 break;
 
             case MAINTAIN_DISTANCE:
+                backboardPositionController.setPID(kP, kI, kD);
                 double correctionX = backboardPositionController.calculate(hardware.distance, targetDistance);
-                driveInput = new Pose2d(correctionX, driveInput.getY(), new Rotation2d(0));
+                driveInput = new Pose2d(-correctionX, driveInput.getY(), new Rotation2d(0));
                 break;
         }
     }
@@ -253,17 +262,20 @@ public class DrivetrainSubsystem extends SubsystemBase {
                 ChassisSpeeds.fromFieldRelativeSpeeds(
                         driveInput.getY() * highestPossibleMotorVelocity * voltageMultiplier,
                         -driveInput.getX() * highestPossibleMotorVelocity * voltageMultiplier,
-                        getTurnPower(driveInput.getHeading(), imuAngle.getRadians()) * voltageMultiplier,
+                        getTurnPower(driveInput.getHeading(), imuAngle.getRadians(), Math.hypot(driveInput.getX(), driveInput.getY())) * voltageMultiplier,
                         imuAngle
                 ));
     }
 
 
-    public double getTurnPower(double turnSpeed, double imuAngle){
+    public double getTurnPower(double turnSpeed, double imuAngle, double driveSignal){
         double angleError = targetRobotAngleRads - imuAngle;
 
-        if (turnSpeed == 0 && Math.abs(angleError) > robotAngleAllowedErrorRads) {
-            return  robotAngleHoldingKp * angleError;
+        if (turnSpeed == 0 && Math.abs(angleError) > robotAngleAllowedErrorRads && driveSignal != 0) {
+            if (Math.abs(angleError) > Math.PI){
+                angleError -= Math.signum(angleError) * 2d * Math.PI;
+            }
+            return  robotAngleHoldingKp * driveSignal * angleError;
         }
         else{
             targetRobotAngleRads = imuAngle;
@@ -316,6 +328,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
 
     public void resetImuOffset(){
-        imuOffset = hardware.imuAngle;
+        imuOffset = new Rotation2d();
+        hardware.imu.reset();
     }
 }

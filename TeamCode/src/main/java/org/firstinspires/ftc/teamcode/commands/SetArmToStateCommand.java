@@ -17,6 +17,7 @@ import java.util.function.BooleanSupplier;
 public class SetArmToStateCommand extends CommandBase {
     ArmState targetState;
     ArmSubsystem arm;
+
     BooleanSupplier moveToTransfer = ()-> !(arm.areSlidesDown() && arm.areAxonsCloseToTransferPos());
 
 
@@ -35,7 +36,8 @@ public class SetArmToStateCommand extends CommandBase {
                         new SequentialCommandGroup(
                                 new SetSlideHeightCommand(arm, ArmSubsystem.SLIDE_STATE.PICKUP),
                                 new ConditionalCommand(
-                                        new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.TRANSFER),
+                                        new SequentialCommandGroup(new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.TRANSFER),
+                                                                    new WaitCommand(1000)),
                                         new WaitCommand(0),
                                         moveToTransfer),
                                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_OPEN),
@@ -86,8 +88,8 @@ public class SetArmToStateCommand extends CommandBase {
                         ));
                 break;
         }
-
     }
+
 
 
     public enum ArmState{

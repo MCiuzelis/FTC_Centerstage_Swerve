@@ -6,7 +6,7 @@ import com.arcrobotics.ftclib.geometry.Translation2d;
 @Config
 public class Constants {
 
-    public static double nominalBatteryVoltage = 14.5;
+    public static double nominalBatteryVoltage = 12.5;
 
 
     //swerve module offsets from robot center:
@@ -46,10 +46,10 @@ public class Constants {
     public static double DriveBaseDriveStabilityThreshold = 999999;
     public static double DriveBaseDriveLowPassGain = 0;
 
-    public static double DriveBaseMaxDriveAcceleration = 1000;
+    public static double DriveBaseMaxDriveAcceleration = 400;
 
 
-    public static double robotAngleHoldingKp = 2500;
+    public static double robotAngleHoldingKp = 15000;
     public static double robotAngleAllowedErrorRads = Math.toRadians(1.5);
 
     //Calibration velocities:
@@ -64,14 +64,14 @@ public class Constants {
 
 
     //-----------ARM--------------
-    public static double clawClosedPosition = 0;
-    public static double clawOpenPosition = 0.75;
+    public static double clawClosedPosition = 0.25;
+    public static double clawOpenPosition = 1;
 
     public static double clawPickupPos = 0.4;
-    public static double clawLowPosPos = 1;
+    public static double clawLowPosPos = 0.8;
     public static double clawTransferPos = 0;
-    public static double clawMidPosPosition = 0.85;
-    public static double clawHighPosPosition = 0.7;
+    public static double clawMidPosPosition = 0.7;
+    public static double clawHighPosPosition = 0.6;
 
     public static double slidePickupPos = 0;
     public static double slideLowPos = 50;

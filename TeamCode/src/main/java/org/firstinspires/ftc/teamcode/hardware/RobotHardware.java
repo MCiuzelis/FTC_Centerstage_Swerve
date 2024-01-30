@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
-import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 import static org.firstinspires.ftc.teamcode.hardware.Constants.planeLockPosition;
 import androidx.annotation.GuardedBy;
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -12,7 +11,6 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -63,9 +61,6 @@ public class RobotHardware{
         allHubs = hw.getAll(LynxModule.class);
         voltageSensor = hw.getAll(PhotonLynxVoltageSensor.class).iterator().next();
 
-        //distanceSensor = hw.get(SensorREV2mDistance.class, "distanceSensor");
-
-
         SlideMotor = initMotor(hw, "ch0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLT_Motor = initMotor(hw, "ch2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         FLB_Motor = initMotor(hw, "ch3", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -76,8 +71,8 @@ public class RobotHardware{
 
         clawAngleServo = initServo(hw, "EHservo4", Servo.Direction.REVERSE);
 
-        clawLeftServo = initServo(hw, "CHservo3", Servo.Direction.REVERSE);
-        clawRightServo = initServo(hw, "CHservo4", Servo.Direction.FORWARD);
+        clawLeftServo = initServo(hw, "CHservo3", Servo.Direction.FORWARD);
+        clawRightServo = initServo(hw, "CHservo4", Servo.Direction.REVERSE);
 
         axonLeft = initServo(hw, "EHservo3", Servo.Direction.FORWARD);
         axonRight = initServo(hw, "EHservo2", Servo.Direction.FORWARD);
@@ -94,14 +89,13 @@ public class RobotHardware{
 
         synchronized (imuLock) {
             imu = new RevIMU(hw, "imu");
+            distanceSensor = hw.get(DistanceSensor.class, "distanceSensor");
             imu.init();
         }
 
         synchronized (distanceSensorLock){
             distanceSensor = hw.get(DistanceSensor.class, "distanceSensor");
         }
-
-        //webcam = hw.get(WebcamName.class, "Webcam 1");
     }
 
 
@@ -139,6 +133,7 @@ public class RobotHardware{
             while (!opMode.isStopRequested() && opMode.opModeIsActive()) {
                 synchronized (imuLock) {
                     imuAngle = imu.getRotation2d();
+                    distance = distanceSensor.getDistance(DistanceUnit.CM);
                 }
             }
         });
@@ -153,7 +148,7 @@ public class RobotHardware{
                 }
             }
         });
-        imuThread.start();
+        distanceSensorThread.start();
     }
 
     public double getVoltage(){
