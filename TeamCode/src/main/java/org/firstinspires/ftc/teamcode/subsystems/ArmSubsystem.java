@@ -1,17 +1,5 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawClosedPosition;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawHighPosPosition;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawLowPosPos;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawMidPosPosition;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawOpenPosition;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawPickupPos;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawTransferPos;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.slideHighPos;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.slideLowPos;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.slideMidPos;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.slidePickupPos;
-
 import com.ThermalEquilibrium.homeostasis.Filters.FilterAlgorithms.LowPassFilter;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -20,17 +8,13 @@ import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 
 @Config
 public class ArmSubsystem extends SubsystemBase {
 
-    RobotHardware robot;
-    Telemetry telemetry;
-    boolean DEBUG_MODE;
-
+    //SLIDES:
     public static double maxVelocity = 1400;
     public static double minVelocity = 350;
     public static double slowDownDistance = 150;
@@ -38,25 +22,44 @@ public class ArmSubsystem extends SubsystemBase {
     public static double kP = 0.012;
     public static double kD = 0;
     public static double kG = 0.013;
-
     public static double lowPassGain = 0.6;
 
+    public static double slidePickupPos = 0;
+    public static double slideLowPos = 50;
+    public static double slideMidPos = 650;
+    public static double slideHighPos = 1100;
+    public static double slideErrorMargin = 10;
+
+    //MAIN ARM:
     public static double axonHighPos = 0.72;
     public static double axonMidPos = 0.85;
     public static double axonLowPos = 0.95;
     public static double axonPickupPos = 0.02;
     public static double axonTransferPos = 0.15;
 
+    //CLAW ANGLE:
+    public static double clawPickupPos = 0.4;
+    public static double clawLowPosPos = 0.8;
+    public static double clawTransferPos = 0;
+    public static double clawMidPosPosition = 0.7;
+    public static double clawHighPosPosition = 0.6;
+
+    //CLAW:
+    public static double clawClosedPosition = 1;
+    public static double clawOpenPosition = 0.25;
+
     double prevSlideTargetPos = 0;
     double prevMotorPos = 0;
     double slideTargetPos = 0;
     double startingPosition = 0;
 
-    double slideErrorMargin = 10;
+    RobotHardware robot;
+    Telemetry telemetry;
+    boolean DEBUG_MODE;
 
-    PIDController pid = new PIDController(kP, 0, kD);
-    LowPassFilter filter = new LowPassFilter(lowPassGain);
-    ElapsedTime profileTimer = new ElapsedTime();
+    PIDController slidePid = new PIDController(kP, 0, kD);
+    LowPassFilter slideFilter = new LowPassFilter(lowPassGain);
+    ElapsedTime slideProfileTimer = new ElapsedTime();
 
 
 
@@ -71,7 +74,6 @@ public class ArmSubsystem extends SubsystemBase {
         update(SLIDE_STATE.PICKUP);
         CommandScheduler.getInstance().registerSubsystem(this);
     }
-
 
 
     public void update(CLAW_STATE state) {
@@ -104,19 +106,15 @@ public class ArmSubsystem extends SubsystemBase {
             case PICKUP:
                 robot.clawAngleServo.setPosition(clawPickupPos);
                 break;
-
             case LOWPOS:
                 robot.clawAngleServo.setPosition(clawLowPosPos);
                 break;
-
             case TRANSFER:
                 robot.clawAngleServo.setPosition(clawTransferPos);
                 break;
-
             case MIDPOS:
                 robot.clawAngleServo.setPosition(clawMidPosPosition);
                 break;
-
             case HIGHPOS:
                 robot.clawAngleServo.setPosition(clawHighPosPosition);
                 break;
@@ -128,15 +126,12 @@ public class ArmSubsystem extends SubsystemBase {
             case PICKUP:
                 slideTargetPos = slidePickupPos;
                 break;
-
             case LOW:
                 slideTargetPos = slideLowPos;
                 break;
-
             case MID:
                 slideTargetPos = slideMidPos;
                 break;
-
             case HIGH:
                 slideTargetPos = slideHighPos;
                 break;
@@ -175,16 +170,13 @@ public class ArmSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        double armAngleRads = robot.armAxonEncoder.getVoltage() / 1.65d * Math.PI;
-        telemetry.addData("AxonAngle", Math.toDegrees(armAngleRads));
-
-        pid.setPID(kP, 0, kD);
+        slidePid.setPID(kP, 0, kD);
 
         double currentMotorPos = robot.SlideMotor.getCurrentPosition();
 
         if (slideTargetPos != prevSlideTargetPos){
             startingPosition = currentMotorPos;
-            profileTimer.reset();
+            slideProfileTimer.reset();
         }
 
         prevSlideTargetPos = slideTargetPos;
@@ -192,7 +184,7 @@ public class ArmSubsystem extends SubsystemBase {
 
         if (currentMotorPos <= slowDownDistance && !(prevMotorPos <= slowDownDistance)){
             startingPosition = currentMotorPos;
-            profileTimer.reset();
+            slideProfileTimer.reset();
         }
         prevMotorPos = currentMotorPos;
 
@@ -202,17 +194,20 @@ public class ArmSubsystem extends SubsystemBase {
             velocity = currentMotorPos <= slowDownDistance ? minVelocity : maxVelocity;
         }
 
-        velocity = filter.estimate(velocity);
-        double newPosition = startingPosition + Math.signum(error) * profileTimer.seconds() * velocity;
+        velocity = slideFilter.estimate(velocity);
+        double newPosition = startingPosition + Math.signum(error) * slideProfileTimer.seconds() * velocity;
 
         if ((error >= 0 && newPosition >= slideTargetPos) || (error <= 0 && newPosition <= slideTargetPos)){
             newPosition = slideTargetPos;
         }
 
-        double power = pid.calculate(currentMotorPos, newPosition) + kG;
+        double power = slidePid.calculate(currentMotorPos, newPosition) + kG;
         robot.SlideMotor.setPower(power);
 
         if (DEBUG_MODE) {
+            double armAngleRads = robot.armAxonEncoder.getVoltage() / 1.65d * Math.PI;
+
+            telemetry.addData("AxonAngle", Math.toDegrees(armAngleRads));
             telemetry.addData("GamepadTargetMotorAngle", slideTargetPos);
             telemetry.addData("actualTargetPos", newPosition);
             telemetry.addData("currentAngle", currentMotorPos);
@@ -221,22 +216,18 @@ public class ArmSubsystem extends SubsystemBase {
         }
     }
 
-
     public void offsetLift(double offset){
         slideTargetPos += offset;
     }
-
 
     public boolean areSlidesDown(){
         return (robot.SlideMotor.getCurrentPosition() > slidePickupPos - slideErrorMargin &&
                 robot.SlideMotor.getCurrentPosition() < slidePickupPos + slideErrorMargin);
     }
 
-
     public boolean areAxonsCloseToTransferPos(){
         return robot.armAxonEncoder.getVoltage() / 3.3 * 360 > 220;
     }
-
 
     public enum SLIDE_STATE{
         PICKUP,

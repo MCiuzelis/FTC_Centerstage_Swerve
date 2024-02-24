@@ -1,11 +1,8 @@
 package org.firstinspires.ftc.teamcode.testing;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawPickupPos;
-
 import com.ThermalEquilibrium.homeostasis.Controllers.Feedback.PIDEx;
 import com.ThermalEquilibrium.homeostasis.Parameters.PIDCoefficientsEx;
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -13,7 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.utils.CustomMotionProfile;
+import org.firstinspires.ftc.teamcode.utils.MotionProfiling.CustomMotionProfile;
 
 @Disabled
 //@Config
@@ -54,7 +51,7 @@ public class MotionProfilingNew extends OpMode {
         testMotor = hardwareMap.get(DcMotorEx.class, "ch0");
         testMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         servo = hardwareMap.get(Servo.class, "CHservo0");
-        servo.setPosition(clawPickupPos);
+        servo.setPosition(0);
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         motionProfile = new CustomMotionProfile(telemetry, maxVelocity, maxAcceleration, maxJerk, kV, kA, kS, kCos, controller);

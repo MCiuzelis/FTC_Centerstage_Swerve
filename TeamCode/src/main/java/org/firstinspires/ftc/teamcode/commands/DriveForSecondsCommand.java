@@ -1,22 +1,21 @@
 package org.firstinspires.ftc.teamcode.commands;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.command.CommandBase;
-import com.arcrobotics.ftclib.geometry.Pose2d;
-import com.arcrobotics.ftclib.geometry.Rotation2d;
-import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
 
-public class DriveCommand extends CommandBase {
+public class DriveForSecondsCommand extends CommandBase {
 
     Pose2d driveInput;
     DrivetrainSubsystem robot;
     double time;
     ElapsedTime timer;
 
-    public DriveCommand (DrivetrainSubsystem robot, Pose2d driveInput, double time){
+    public DriveForSecondsCommand(DrivetrainSubsystem robot, Pose2d driveInput, double time){
         this.driveInput = driveInput;
         this.robot = robot;
         this.time = time;
@@ -24,15 +23,14 @@ public class DriveCommand extends CommandBase {
         addRequirements(robot);
     }
 
-
-    public DriveCommand (DrivetrainSubsystem robot, Translation2d driveInput, double time){
-        this(robot, new Pose2d(driveInput, new Rotation2d()), time);
+    public DriveForSecondsCommand(DrivetrainSubsystem robot, Vector2d driveInput, double time){
+        this(robot, new Pose2d(driveInput, 0), time);
     }
 
 
     @Override
     public void execute(){
-        robot.drive(driveInput);
+        robot.setGamepadInput(driveInput);
     }
 
     @Override
@@ -43,7 +41,6 @@ public class DriveCommand extends CommandBase {
 
     @Override
     public void end (boolean interrupted){
-        robot.drive();
+        robot.setGamepadInput();
     }
-
 }

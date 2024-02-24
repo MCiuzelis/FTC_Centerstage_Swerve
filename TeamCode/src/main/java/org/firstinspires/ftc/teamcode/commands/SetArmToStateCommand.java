@@ -40,10 +40,11 @@ public class SetArmToStateCommand extends CommandBase {
                                                                     new WaitCommand(1000)),
                                         new WaitCommand(0),
                                         moveToTransfer),
-                                new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_OPEN),
                                 new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.PICKUP),
-                                new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.PICKUP)
-                        ));
+                                new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.PICKUP),
+                                new WaitCommand(200),
+                                new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_OPEN)
+                                ));
                 break;
 
             case TRANSFER:

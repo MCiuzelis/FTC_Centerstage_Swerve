@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
@@ -24,7 +26,7 @@ public class DebugRobot extends OpMode {
         hardware = new RobotHardware(hardwareMap);
         hardware.initialiseHardware(telemetry);
 
-        swerve = new DrivetrainSubsystem(hardware, telemetry, false);
+        swerve = new DrivetrainSubsystem(hardware, telemetry, false, false);
         arm = new ArmSubsystem(hardware, telemetry, false);
         file = new CalibrationTransfer(telemetry);
     }

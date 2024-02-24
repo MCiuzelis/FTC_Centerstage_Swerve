@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
-import static org.firstinspires.ftc.teamcode.hardware.Constants.clawPickupPos;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -49,15 +47,15 @@ public class MainAutonomous extends CommandOpMode {
     public static double TranslationKi = 0;
     public static double TranslationKd = 0.0001;
 
-    public static double RotationKp = 0.5;
-    public static double RotationKi = 0.0005;
+    public static double RotationKp = 0.3;
+    public static double RotationKi = 0;
     public static double RotationKd = 0.1;
 
 
     public static double base = 10;
     public static double width = 10;
 
-    public static double rotationKv = 0.19;
+    public static double rotationKv = 0.17;
     public static double rotationKa = 0;
     public static double translationKv = 0.013;
     public static double translationKa = 0;
@@ -105,7 +103,7 @@ public class MainAutonomous extends CommandOpMode {
         file = new CalibrationTransfer(telemetry);
         impulse = new DriveSignal();
 
-        swerve = new DrivetrainSubsystem(hardware, telemetry, false);
+        swerve = new DrivetrainSubsystem(hardware, telemetry, false, true);
 
         trajectoryFollower = new HolonomicPIDVAFollower(new PIDCoefficients(TranslationKp, TranslationKi, TranslationKd), new PIDCoefficients(TranslationKp, TranslationKi, TranslationKd),new PIDCoefficients(RotationKp, RotationKi, RotationKd)) ;
         swerveVelocityConstraint = new SwerveVelocityConstraint(maxWheelVelocity, width, base);
@@ -146,7 +144,7 @@ public class MainAutonomous extends CommandOpMode {
 
         if (!isOpModeStarted){
             odPropProcessor.start();
-            hardware.clawAngleServo.setPosition(clawPickupPos);
+            arm.update(ArmSubsystem.CLAW_ANGLE.PICKUP);
 
             while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
 
@@ -166,7 +164,7 @@ public class MainAutonomous extends CommandOpMode {
 
         hardware.clearBulkCache();
         CommandScheduler.getInstance().run();
-        swerve.loop();
+        swerve.drive();
         swerve.updateOdometryFromMotorEncoders();
 
         robotPosition = new com.acmerobotics.roadrunner.geometry.Pose2d(
@@ -192,9 +190,9 @@ public class MainAutonomous extends CommandOpMode {
         if (impulse != null) {
             telemetry.addData("signal vel", impulse.getVel().getHeading());
             telemetry.addData("signal accel", impulse.getAccel().getHeading());
-            swerve.drive(correction);
+            //swerve.setGamepadInput(correction);
         } else {
-            swerve.drive();
+            swerve.setGamepadInput();
         }
 
 

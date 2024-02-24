@@ -46,7 +46,7 @@ public class CalibrationTransfer {
                 String data = myReader.nextLine();
                 calibrationList.add(data);
             }
-            myObj.delete();
+            //myObj.delete();
             myReader.close();
         } catch (FileNotFoundException e) {
             telemetry.addLine("Fatal error reading from file!");

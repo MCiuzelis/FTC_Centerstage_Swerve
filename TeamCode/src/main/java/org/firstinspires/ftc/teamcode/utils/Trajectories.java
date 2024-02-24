@@ -7,10 +7,14 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.constraints.SwerveVelocityConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
+import com.arcrobotics.ftclib.command.CommandScheduler;
 
+import org.firstinspires.ftc.teamcode.commands.SetArmToStateCommand;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequenceBuilder;
+
+import java.util.Set;
 
 public class Trajectories {
     ArmSubsystem armSubsystem;
@@ -25,10 +29,6 @@ public class Trajectories {
         armSubsystem = arm;
         this.swerveVelocityConstraint = swerveVelocityConstraint;
         this.trajectoryAccelerationConstraint = trajectoryAccelerationConstraint;
-        //(0, 28) -> left
-        //(28, 0) -> forward
-        //(28, 0) -> back
-        //(0, 28) -> right
     }
 
 
@@ -48,23 +48,22 @@ public class Trajectories {
                     case RIGHT:
                         trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
                                 .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
-                                .forward(28)
+                                .forward(27.5)
                                 .turn(Math.toRadians(-90))
+                                .lineTo(new Vector2d(24, 0))
                                 .waitSeconds(0.5)
                                 .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                                 .waitSeconds(0.5)
-                                .lineTo(new Vector2d(31, 0))
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.LOWPOS))
-                                .lineTo(new Vector2d(56, 0))
+                                .lineTo(new Vector2d(32, 0))
+                                .addDisplacementMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
+                                .lineTo(new Vector2d(65, 0))
+                                .waitSeconds(0.1)
+                                .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
                                 .waitSeconds(0.5)
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
-                                .waitSeconds(2)
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.TRANSFER))
-                                .waitSeconds(1.5)
-                                .lineTo(new Vector2d(49, 0))
-
-                                .waitSeconds(1)
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.PICKUP))
+                                .lineTo(new Vector2d(60, 0))
+                                .waitSeconds(0.5)
+                                .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+                                .waitSeconds(5)
                                 .addDisplacementMarker(() -> stopOpMode = true)
                                 .build();
                         break;
@@ -73,25 +72,23 @@ public class Trajectories {
                     case LEFT:
                         trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
                                 .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
-                                .forward(25)
+                                .forward(27)
                                 .turn(Math.toRadians(-90))
                                 .waitSeconds(0.5)
                                 .lineTo(new Vector2d(46, 0))
                                 .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                                 .waitSeconds(0.5)
-                                .lineTo(new Vector2d(47, 0))
-                                .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.LOWPOS))
-                                .waitSeconds(2)
-                                .lineTo(new Vector2d(53, 0))
+                                .lineTo(new Vector2d(47.5, 0))
+                                .addDisplacementMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
+                                .waitSeconds(1)
+                                .lineTo(new Vector2d(63, 0))
                                 .waitSeconds(0.5)
                                 .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
-                                .waitSeconds(2)
-                                .lineTo(new Vector2d(51.5, 0))
-                                .waitSeconds(2)
-                                .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.TRANSFER))
                                 .waitSeconds(1)
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.PICKUP))
-                                .waitSeconds(1)
+                                .lineTo(new Vector2d(58, 0))
+                                .waitSeconds(0.5)
+                                .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+                                .waitSeconds(5)
                                 .addDisplacementMarker(() -> stopOpMode = true)
                                 .build();
                         break;
@@ -100,23 +97,21 @@ public class Trajectories {
                     case MIDDLE:
                         trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
                                 .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
-                                .forward(26)
+                                .forward(28)
                                 .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                                 .waitSeconds(0.5)
                                 .back(3.5)
-                                .turn(Math.toRadians(-90 * inverter))
+                                .turn(Math.toRadians(-90))
                                 .waitSeconds(0.5)
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.LOWPOS))
-                                .lineTo(new Vector2d(51.5, 0))
+                                .addDisplacementMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
+                                .lineTo(new Vector2d(63, 0))
                                 .waitSeconds(0.5)
-                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.BOTH_OPEN))
-                                .waitSeconds(2)
-                                .lineTo(new Vector2d(49, 0))
-                                .waitSeconds(2)
-                                .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.TRANSFER))
-                                .waitSeconds(2)
-                                .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.PICKUP))
-                                .waitSeconds(2)
+                                .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
+                                .waitSeconds(1)
+                                .lineTo(new Vector2d(58, 0))
+                                .waitSeconds(0.5)
+                                .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+                                .waitSeconds(3)
                                 .addDisplacementMarker(() -> stopOpMode = true)
                                 .build();
                         break;
@@ -130,25 +125,22 @@ public class Trajectories {
                 case LEFT:
                     trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
                             .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
-                            .forward(27)
+                            .forward(27.5)
                             .turn(Math.toRadians(90))
+                            .lineTo(new Vector2d(24, 0))
                             .waitSeconds(0.5)
                             .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                             .waitSeconds(0.5)
-                            .lineTo(new Vector2d(31, 0))
-                            .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.LOWPOS))
-                            .waitSeconds(1)
-                            .lineTo(new Vector2d(56, 0))
-                            .waitSeconds(0.5)
+                            .lineTo(new Vector2d(32, 0))
+                            .addDisplacementMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
+                            .lineTo(new Vector2d(65, 0))
+                            .waitSeconds(0.1)
                             .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
-                            .waitSeconds(2)
-                            .lineTo(new Vector2d(54, 0))
-                            .waitSeconds(1)
-                            .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.TRANSFER))
-                            .waitSeconds(1)
-                            .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.PICKUP))
-                            .waitSeconds(1)
-                            .lineTo(new Vector2d(58, 0))
+                            .waitSeconds(0.5)
+                            .lineTo(new Vector2d(60, 0))
+                            .waitSeconds(0.5)
+                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+                            .waitSeconds(5)
                             .addDisplacementMarker(() -> stopOpMode = true)
                             .build();
                     break;
@@ -157,26 +149,23 @@ public class Trajectories {
                 case RIGHT:
                     trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
                             .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
-                            .forward(23)
+                            .forward(27)
                             .turn(Math.toRadians(90))
                             .waitSeconds(0.5)
-                            .lineTo(new Vector2d(44.5, 10))
+                            .lineTo(new Vector2d(46, 0))
                             .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                             .waitSeconds(0.5)
-                            .lineTo(new Vector2d(45.75, 10))
-                            .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.LOWPOS))
+                            .lineTo(new Vector2d(47.5, 0))
+                            .addDisplacementMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
                             .waitSeconds(1)
-                            .lineTo(new Vector2d(50, 10))
+                            .lineTo(new Vector2d(63, 0))
                             .waitSeconds(0.5)
                             .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
                             .waitSeconds(1)
-                            .lineTo(new Vector2d(49, 10))
-                            .waitSeconds(2)
-                            .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.TRANSFER))
-                            .waitSeconds(2)
-                            .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.PICKUP))
-                            .waitSeconds(1)
-                            .lineTo(new Vector2d(51, 10))
+                            .lineTo(new Vector2d(58, 0))
+                            .waitSeconds(0.5)
+                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+                            .waitSeconds(5)
                             .addDisplacementMarker(() -> stopOpMode = true)
                             .build();
                     break;
@@ -185,24 +174,21 @@ public class Trajectories {
                 case MIDDLE:
                     trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
                             .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
-                            .forward(26)
+                            .forward(28)
                             .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                             .waitSeconds(0.5)
                             .back(3.5)
-                            .turn(Math.toRadians(-90 * inverter))
+                            .turn(Math.toRadians(90))
                             .waitSeconds(0.5)
-                            .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.LOWPOS))
-                            .lineTo(new Vector2d(51, 0))
+                            .addDisplacementMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
+                            .lineTo(new Vector2d(63, 0))
                             .waitSeconds(0.5)
                             .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.RIGHT_OPEN))
                             .waitSeconds(1)
-                            .addTemporalMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.TRANSFER))
-                            .waitSeconds(2)
-                            .lineTo(new Vector2d(49.5, 0))
-                            .waitSeconds(2)
-                            .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.AXON_STATE.PICKUP))
-                            .waitSeconds(1)
-                            .lineTo(new Vector2d(52, 0))
+                            .lineTo(new Vector2d(58, 0))
+                            .waitSeconds(0.5)
+                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+                            .waitSeconds(3)
                             .addDisplacementMarker(() -> stopOpMode = true)
                             .build();
                     break;

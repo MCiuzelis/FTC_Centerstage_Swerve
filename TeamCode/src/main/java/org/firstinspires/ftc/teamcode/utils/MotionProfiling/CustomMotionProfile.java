@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils;
+package org.firstinspires.ftc.teamcode.utils.MotionProfiling;
 
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 import com.ThermalEquilibrium.homeostasis.Controllers.Feedback.PIDEx;

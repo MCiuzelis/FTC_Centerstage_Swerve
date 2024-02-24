@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -7,19 +8,27 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
-@Disabled
+//@Disabled
+@Photon
 @TeleOp(name = "GoofyDriveBaseCalibrationTesting", group = "OpMode")
 public class DriveBaseCalibration extends LinearOpMode {
     DrivetrainSubsystem drivetrainSubsystem;
-    RobotHardware robot = new RobotHardware(hardwareMap);
+    RobotHardware robot;
 
 
 
     @Override
     public void runOpMode() throws InterruptedException {
+        robot = new RobotHardware(hardwareMap);
         robot.initialiseHardware(telemetry);
-        drivetrainSubsystem = new DrivetrainSubsystem(robot, telemetry, true);
+
+        drivetrainSubsystem = new DrivetrainSubsystem(robot, telemetry, true, false);
         drivetrainSubsystem.calibrate();
         waitForStart();
+
+        while (opModeIsActive()){
+            robot.getCalibrationSensorTelemetry();
+            telemetry.update();
+        }
     }
 }

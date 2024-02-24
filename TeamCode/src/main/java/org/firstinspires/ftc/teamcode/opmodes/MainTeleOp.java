@@ -1,14 +1,19 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLaunchPosition;
+import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLockPosition;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.CommandScheduler;
+import com.arcrobotics.ftclib.command.InstantCommand;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.commands.DepositPixelsCommand;
 import org.firstinspires.ftc.teamcode.commands.SetArmToStateCommand;
 import org.firstinspires.ftc.teamcode.commands.lowLevelCommands.SetClawStateCommand;
@@ -40,7 +45,6 @@ public class MainTeleOp extends CommandOpMode {
         CommandScheduler.getInstance().reset();
         hardware = new RobotHardware(hardwareMap);
         hardware.initialiseHardware(telemetry);
-        hardware.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         armSubsystem = new ArmSubsystem(hardware,telemetry,false);
         file = new CalibrationTransfer(telemetry);
@@ -49,31 +53,6 @@ public class MainTeleOp extends CommandOpMode {
         telemetry.clearAll();
         telemetry.addLine("press triangle 🔺 if modules calibrated");
         telemetry.addLine("press cross ❌ if read angles from file");
-        telemetry.update();
-
-
-        while (!this.isStopRequested()) {
-            if (gamepad1.triangle) {
-                swerve = new DrivetrainSubsystem(hardware, telemetry, false);
-                telemetry.addLine("initialising standard teleOp");
-                telemetry.addLine("waiting for start ✅");
-                swerve.resetAllEncoders();
-                break;
-            } else if (gamepad1.cross) {
-                double [] angles = file.pullModuleAngleOffsets();
-                double heading = file.getRobotHeadingOffset();
-                telemetry.addData("0", angles[0]);
-                telemetry.addData("1", angles[1]);
-                telemetry.addData("2", angles[2]);
-                telemetry.addData("heading", heading);
-
-
-                swerve = new DrivetrainSubsystem(hardware, telemetry, new double[]{0, 0, 0}, heading, false);
-                telemetry.addLine("read from file");
-                telemetry.addLine("waiting for start ✅");
-                break;
-            }
-        }
         telemetry.update();
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -98,11 +77,38 @@ public class MainTeleOp extends CommandOpMode {
 //        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
 //                .whileHeld(()-> schedule(new InstantCommand(()-> swerve.setModeToMaintainDistance(Math.toRadians(90), 12))))
 //                .whenReleased(()-> schedule(new InstantCommand(()-> swerve.setModeToManual())));
-//        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_DOWN)
-//                .whenPressed(()-> schedule(new InstantCommand(()-> swerve.resetImuOffset())));
-//        gamePad.getGamepadButton(GamepadKeys.Button.START)
-//                .toggleWhenPressed(()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLaunchPosition))),
-//                                   ()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLockPosition))));
+        gamePad.getGamepadButton(GamepadKeys.Button.START)
+                .toggleWhenPressed(()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLaunchPosition))),
+                                   ()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLockPosition))));
+
+
+        while (!this.isStopRequested()) {
+            if (gamepad1.triangle) {
+                swerve = new DrivetrainSubsystem(hardware, telemetry, false, false);
+                telemetry.addLine("initialising standard teleOp");
+                telemetry.addLine("waiting for start ✅");
+                swerve.calibrate();
+                while (!swerve.areModulesCalibrated()){sleep(5);}
+                swerve.resetAllEncoders();
+                swerve.resetImuOffset();
+                break;
+            } else if (gamepad1.cross) {
+                double [] angles = file.pullModuleAngleOffsets();
+                double heading = file.getRobotHeadingOffset();
+                telemetry.addData("0", angles[0]);
+                telemetry.addData("1", angles[1]);
+                telemetry.addData("2", angles[2]);
+                telemetry.addData("heading", heading);
+
+
+                swerve = new DrivetrainSubsystem(hardware, telemetry, heading, false, false);
+                telemetry.addLine("read from file");
+                telemetry.addLine("waiting for start ✅");
+                break;
+            }
+        }
+        telemetry.update();
+        hardware.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
     }
 
 
@@ -113,26 +119,30 @@ public class MainTeleOp extends CommandOpMode {
     public void run(){
         if (!opModeStarted){
             hardware.startIMUThread(this);
-            hardware.startDistanceSensorThread(this);
             opModeStarted = true;
+        }
+
+        if (gamepad1.share){
+            swerve.resetImuOffset();
         }
 
 
         hardware.clearBulkCache();
-        swerve.drive(gamePad.getGamepadInput());
+        swerve.setGamepadInput(gamePad.getGamepadInput());
         CommandScheduler.getInstance().run();
-        swerve.loop();
+        swerve.drive();
 
+        telemetry.addData("distance", hardware.distanceSensor.getDistance(DistanceUnit.CM));
 
         double loop = System.nanoTime();
-        telemetry.addData("loop time ms",  1000000000 / (loop - loopTime));
+        telemetry.addData("Loop time ms",  (loop - loopTime) / 1000000);
         telemetry.addData("imuAngle", hardware.imuAngle.getDegrees());
         loopTime = loop;
-        telemetry.addData("distance: ", hardware.distance);
 
+        telemetry.addData("time left: ", 120 - getRuntime());
         telemetry.update();
 
-
+        //if (getRuntime() > 120) requestOpModeStop();
         if (isStopRequested()) while (!file.hasWrote) file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
     }
 }

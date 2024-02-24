@@ -1,43 +1,13 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import static com.arcrobotics.ftclib.util.MathUtils.clamp;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKd;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKi;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKp;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKs;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveKv;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveLowPassGain;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveMaxIntegralSum;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseDriveStabilityThreshold;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKd;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKi;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnKp;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnLowPassGain;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnMaxIntegralSum;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.DriveBaseTurnStabilityThreshold;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.K_rotation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.backLocation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.frontLeftLocation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.frontRightLocation;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.highestPossibleMotorVelocity;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.nominalBatteryVoltage;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.robotAngleAllowedErrorRads;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.robotAngleHoldingKp;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.turnVelocityMultiplierAtMaxSpeed;
-import static org.firstinspires.ftc.teamcode.hardware.Constants.turnVelocityMultiplierCutoffValue;
-
-import com.ThermalEquilibrium.homeostasis.Controllers.Feedback.PIDEx;
-import com.ThermalEquilibrium.homeostasis.Controllers.Feedforward.BasicFeedforward;
-import com.ThermalEquilibrium.homeostasis.Parameters.FeedforwardCoefficients;
-import com.ThermalEquilibrium.homeostasis.Parameters.PIDCoefficientsEx;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.SubsystemBase;
-import com.arcrobotics.ftclib.controller.PIDController;
-import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
+import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.SwerveDriveKinematics;
@@ -50,10 +20,26 @@ import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 
 @Config
 public class DrivetrainSubsystem extends SubsystemBase {
+    public static double highestPossibleMotorVelocity = 2390;
+    public static double turnVelocityMultiplierAtMaxSpeed = 0.75;
+    public static double turnVelocityMultiplierCutoffValue = 0.8;
 
+    public static double maxAcceleration = 800;
+    public static double maxStrafeAcceleration = 200;
+
+    public static double K_rotation = 4500;
+    public static double angleHoldingKp = 20000;
+    public static double maxRobotAngleError = Math.toRadians(1);
+
+    Translation2d frontLeftLocation = new Translation2d(0.0750555, 0.13);
+    Translation2d frontRightLocation = new Translation2d(0.0750555, -0.13);
+    Translation2d backLocation = new Translation2d(-0.15111, 0);
+
+
+    boolean DEBUG_MODE;
+    boolean isAutonomous;
     RobotHardware hardware;
     Telemetry telemetry;
-    boolean DEBUG_MODE;
 
     Rotation2d frontLeftModuleAngle = new Rotation2d();
     Rotation2d frontRightModuleAngle = new Rotation2d();
@@ -68,54 +54,30 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Pose2d driveInput = new Pose2d();
 
     ElapsedTime odometryTimer = new ElapsedTime();
+    public com.arcrobotics.ftclib.geometry.Pose2d robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d();
     Rotation2d imuOffset;
 
-    public Pose2d robotPosition = new Pose2d();
-
-    PIDEx turnPID = new PIDEx(new PIDCoefficientsEx(DriveBaseTurnKp, DriveBaseTurnKi, DriveBaseTurnKd,
-                        DriveBaseTurnMaxIntegralSum, DriveBaseTurnStabilityThreshold, DriveBaseTurnLowPassGain));
-
-    PIDEx drivePID = new PIDEx(new PIDCoefficientsEx(DriveBaseDriveKp, DriveBaseDriveKi, DriveBaseDriveKd,
-                         DriveBaseDriveMaxIntegralSum, DriveBaseDriveStabilityThreshold, DriveBaseDriveLowPassGain));
-
-    BasicFeedforward driveFeedForward = new BasicFeedforward(new FeedforwardCoefficients(DriveBaseDriveKv, 0, DriveBaseDriveKs));
 
 
-    DRIVETRAIN_STATE currentState = DRIVETRAIN_STATE.FULLY_MANUAL;
-
-    public double targetDistance = 0;
-    public static double kP = 0.06;
-    public static double kI = 0.01;
-    public static double kD = 0;
-    PIDController backboardPositionController = new PIDController(kP, kI, kD);
-
-
-
-
-
-    public DrivetrainSubsystem(RobotHardware robot, Telemetry telemetry, double[] moduleAngleOffsetsRads, double imuOffsetRads, boolean isMode_DEBUG){
+    public DrivetrainSubsystem(RobotHardware robot, Telemetry telemetry, double imuOffsetRads, boolean isMode_DEBUG, boolean isAutonomous) {
         this.hardware = robot;
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        this.isAutonomous = isAutonomous;
         DEBUG_MODE = isMode_DEBUG;
 
-        FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.frontLeftCalibrationSensor, -137, moduleAngleOffsetsRads[0], DEBUG_MODE, telemetry);
-        FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.frontRightCalibrationSensor, 141, moduleAngleOffsetsRads[1], DEBUG_MODE, telemetry);
-        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.backCalibrationSensor, 115, moduleAngleOffsetsRads[2], DEBUG_MODE, telemetry);
+        FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.frontLeftCalibrationSensor, DEBUG_MODE, telemetry);
+        FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.frontRightCalibrationSensor, DEBUG_MODE, telemetry);
+        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.backCalibrationSensor, DEBUG_MODE, telemetry);
 
         this.imuOffset = new Rotation2d(imuOffsetRads);
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 
-
-    public DrivetrainSubsystem(RobotHardware robot, Telemetry telemetry, boolean DEBUG_MODE){
-        this(robot, telemetry, new double[]{0, 0, 0}, 0, DEBUG_MODE);
+    public DrivetrainSubsystem(RobotHardware robot, Telemetry telemetry, boolean DEBUG_MODE, boolean isAutonomous){
+        this(robot, telemetry, 0, DEBUG_MODE, isAutonomous);
     }
 
-
-
-
-     public void loop(){
-
+     public void drive(){
          ChassisSpeeds chassisSpeed = getChassisSpeedFromEncoders();
          double turnVelocityMultiplier = getTurnVelocityMultiplier(chassisSpeed);
 
@@ -131,8 +93,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
          if (frontRight.speedMetersPerSecond != 0) frontRightModuleAngle = frontRight.angle;
          if (back.speedMetersPerSecond != 0) backModuleAngle = back.angle;
 
-
-         //double turnVelocityMultiplier = 1;
+         double joystickAngle = Math.atan2(driveInput.getY(), driveInput.getX());
+         double acceleration = Math.abs(Math.sin(joystickAngle)) * (maxAcceleration - maxStrafeAcceleration) + maxStrafeAcceleration;
 
          //old begin
 //         double frontLeftTurnCorrection = FrontLeft.getTurnCorrection(frontLeftModuleAngle.getRadians(), turnPID) * turnVelocityMultiplier;
@@ -170,53 +132,26 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
         //vectorMethod:
         Vector2d[] motorPowers = getScaledModuleVectors(
-                FrontLeft.getModuleMotorVelocities(frontLeft.speedMetersPerSecond, driveFeedForward, drivePID, frontLeftModuleAngle.getRadians(), turnPID, turnVelocityMultiplier),
-                FrontRight.getModuleMotorVelocities(frontRight.speedMetersPerSecond, driveFeedForward, drivePID, frontRightModuleAngle.getRadians(), turnPID, turnVelocityMultiplier),
-                Back.getModuleMotorVelocities(back.speedMetersPerSecond, driveFeedForward, drivePID, backModuleAngle.getRadians(), turnPID, turnVelocityMultiplier));
+                FrontLeft.getModuleMotorVelocities(frontLeft.speedMetersPerSecond, frontLeftModuleAngle.getRadians(), acceleration, turnVelocityMultiplier),
+                FrontRight.getModuleMotorVelocities(frontRight.speedMetersPerSecond, frontRightModuleAngle.getRadians(), acceleration, turnVelocityMultiplier),
+                Back.getModuleMotorVelocities(back.speedMetersPerSecond, backModuleAngle.getRadians(), acceleration, turnVelocityMultiplier));
 
         FrontLeft.setPowers(motorPowers[0].getX(), motorPowers[0].getY());
         FrontRight.setPowers(motorPowers[1].getX(), motorPowers[1].getY());
-        Back.setPowers(motorPowers[2].getX(), motorPowers[2].getY());
+        Back.setPowers(motorPowers[2].getY(), motorPowers[2].getX());
      }
 
-
-     public void setModeToMaintainDistance(double targetRobotAngleRads, double targetDistance){
-        currentState = DRIVETRAIN_STATE.MAINTAIN_DISTANCE;
-        this.targetRobotAngleRads = targetRobotAngleRads;
-        this.targetDistance = targetDistance;
-     }
-
-
-    public void setModeToManual(){
-        currentState = DRIVETRAIN_STATE.FULLY_MANUAL;
-        targetRobotAngleRads = hardware.imuAngle.getRadians();
+    public void setGamepadInput(Pose2d gamepadInput){
+        driveInput = gamepadInput;
     }
 
-
-     public enum DRIVETRAIN_STATE{
-         FULLY_MANUAL,
-         MAINTAIN_DISTANCE
-     }
-
-
-    public void drive(Pose2d gamepadInput){
-        switch (currentState){
-            case FULLY_MANUAL:
-                driveInput = gamepadInput;
-                break;
-
-            case MAINTAIN_DISTANCE:
-                backboardPositionController.setPID(kP, kI, kD);
-                double correctionX = backboardPositionController.calculate(hardware.distance, targetDistance);
-                driveInput = new Pose2d(-correctionX, driveInput.getY(), new Rotation2d(0));
-                break;
-        }
+    public Pose2d getGamepadInput (){
+        return driveInput;
     }
 
-    public void drive(){
-        drive(new Pose2d());
+    public void setGamepadInput(){
+        setGamepadInput(new Pose2d());
     }
-
 
     public Vector2d[] getScaledModuleVectors(Vector2d... moduleVectors){
         double maxPower = 1;
@@ -224,13 +159,10 @@ public class DrivetrainSubsystem extends SubsystemBase {
             double currentMax = Math.max(Math.abs(moduleVector.getX()), Math.abs(moduleVector.getY()));
             if (currentMax > maxPower) maxPower = currentMax;
         }
-
         Vector2d[] output = new Vector2d[moduleVectors.length];
         for (int i = 0; i < moduleVectors.length; i++) output[i] = moduleVectors[i].div(maxPower);
         return output;
     }
-
-
 
     public ChassisSpeeds getChassisSpeedFromEncoders(){
         SwerveModuleState frontLeftState =
@@ -243,7 +175,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
         return kinematics.toChassisSpeeds(frontLeftState, frontRightState, backState);
     }
 
-
     public double getTurnVelocityMultiplier(ChassisSpeeds chassisSpeeds) {
         double velocityVectorMagnitude = Math.hypot(chassisSpeeds.vyMetersPerSecond, chassisSpeeds.vxMetersPerSecond);
         double currentAndMaxVelocityRatio = velocityVectorMagnitude / highestPossibleMotorVelocity;
@@ -255,34 +186,45 @@ public class DrivetrainSubsystem extends SubsystemBase {
         }
     }
 
-
     public SwerveModuleState[] translateChassisSpeedToModuleStates(Pose2d driveInput, Rotation2d imuAngle){
-        double voltageMultiplier = clamp(Math.pow(hardware.getVoltage() / nominalBatteryVoltage, 2), 0.5, 1);
-        return kinematics.toSwerveModuleStates(
-                ChassisSpeeds.fromFieldRelativeSpeeds(
-                        driveInput.getY() * highestPossibleMotorVelocity * voltageMultiplier,
-                        -driveInput.getX() * highestPossibleMotorVelocity * voltageMultiplier,
-                        getTurnPower(driveInput.getHeading(), imuAngle.getRadians(), Math.hypot(driveInput.getX(), driveInput.getY())) * voltageMultiplier,
-                        imuAngle
-                ));
+        double voltageMultiplier = hardware.getVoltageDriveMultiplier();
+        double vxPower = driveInput.getY() * highestPossibleMotorVelocity * voltageMultiplier;
+        double vyPower = driveInput.getX() * highestPossibleMotorVelocity * voltageMultiplier;
+        double turnPower = getTurnPower(driveInput.getHeading(), imuAngle.getRadians(), driveInput) * voltageMultiplier;
+
+        if (isAutonomous) return kinematics.toSwerveModuleStates(new ChassisSpeeds(vxPower, vyPower, driveInput.getHeading()));
+        else return kinematics.toSwerveModuleStates(ChassisSpeeds.fromFieldRelativeSpeeds(vxPower, vyPower, turnPower, imuAngle));
     }
 
-
-    public double getTurnPower(double turnSpeed, double imuAngle, double driveSignal){
+    public double getTurnPower(double turnSpeed, double imuAngle, Pose2d driveInput){
         double angleError = targetRobotAngleRads - imuAngle;
+        telemetry.addData("targetAngle", Math.toDegrees(targetRobotAngleRads));
+        double driveMagnitude = Math.hypot(driveInput.getX(), driveInput.getY());
 
-        if (turnSpeed == 0 && Math.abs(angleError) > robotAngleAllowedErrorRads && driveSignal != 0) {
+        if (turnSpeed == 0 && driveMagnitude != 0) {
             if (Math.abs(angleError) > Math.PI){
                 angleError -= Math.signum(angleError) * 2d * Math.PI;
             }
-            return  robotAngleHoldingKp * driveSignal * angleError;
+            double output = angleHoldingKp * driveMagnitude * angleError;
+
+            telemetry.addData("angle errror", angleError);
+            telemetry.addData("magnitude", driveMagnitude);
+            telemetry.addData("output", output);
+
+            return output;
         }
+
         else{
-            targetRobotAngleRads = imuAngle;
+            telemetry.addData("angle errror", angleError);
+            telemetry.addData("magnitude", driveMagnitude);
+            telemetry.addData("output", 0);
+
+            if (turnSpeed != 0){
+                targetRobotAngleRads = imuAngle;
+            }
             return turnSpeed * K_rotation;
         }
     }
-
 
     public void updateOdometryFromMotorEncoders(){
         SwerveModuleState frontLeftState =
@@ -294,24 +236,20 @@ public class DrivetrainSubsystem extends SubsystemBase {
         robotPosition = odometry.updateWithTime(odometryTimer.seconds(), hardware.imuAngle, frontLeftState, frontRightState, backState);
     }
 
-
     public void resetAllEncoders(){
-        stopAllMotors();
         FrontLeft.resetModuleEncoders();
         FrontRight.resetModuleEncoders();
         Back.resetModuleEncoders();
     }
 
-
     public void stopAllMotors(){
-        drive();
+        setGamepadInput();
         FrontLeft.stopMotors();
         FrontRight.stopMotors();
         Back.stopMotors();
     }
 
-
-    public void calibrate(){
+    public void calibrate() {
         Thread calibrateFrontLeft = new Thread(FrontLeft);
         Thread calibrateFrontRight = new Thread(FrontRight);
         Thread calibrateBack = new Thread(Back);
@@ -321,11 +259,13 @@ public class DrivetrainSubsystem extends SubsystemBase {
         calibrateBack.start();
     }
 
+    public boolean areModulesCalibrated(){
+        return FrontLeft.moduleCalibrated && FrontRight.moduleCalibrated && Back.moduleCalibrated;
+    }
 
     public double[] getAllModuleAngleRads(){
         return new double[]{FrontLeft.getNormalisedAngleRads(), FrontRight.getNormalisedAngleRads(), Back.getNormalisedAngleRads()};
     }
-
 
     public void resetImuOffset(){
         imuOffset = new Rotation2d();

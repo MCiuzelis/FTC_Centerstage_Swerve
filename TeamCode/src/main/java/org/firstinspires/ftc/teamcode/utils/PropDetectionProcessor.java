@@ -17,7 +17,7 @@ import java.util.List;
 
 public class PropDetectionProcessor extends Thread implements VisionProcessor {
 
-    private static final String FILE_NAME = "/sdcard/FIRST/tflitemodels/ssd_prop_meta_step_300000.tflite";
+    private static final String FILE_NAME = "/sdcard/FIRST/tflitemodels/ssd_prop_meta_step_500000.tflite";
     //private static final String FILE_NAME = "/sdcard/ssd_prop_meta_step_100000.tflite";
     private static final String[] LABELS = {
             "b", "r",
@@ -55,7 +55,7 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
                 .setModelFileName(FILE_NAME)
                 .setModelLabels(LABELS)
                 .build();
-        ODproc.setMinResultConfidence(0.6f);
+        ODproc.setMinResultConfidence(0.2f);
 
 
         //telemetryTfod();
@@ -65,7 +65,7 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
     public void run(){
         while (!stopThread) {
             telemetryTfod();
-            telemetry.addLine("waiting");
+            //telemetry.addLine("waiting");
             telemetry.update();
         }
     }
@@ -85,38 +85,48 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
     public void telemetryTfod() {
 
         List<Recognition> currentRecognitions = ODproc.getRecognitions();
-        telemetry.addData("# Objects Detected", currentRecognitions.size());
 
         if (currentRecognitions.size() != 0){
-            Recognition propDetection = currentRecognitions.get(0);
-            if (propDetection.getLabel() == "r"){
-                propColor = COLOR.RED;
-            } else if (propDetection.getLabel() =="b") {
-                propColor = COLOR.BLUE;
-            }
-            telemetry.addData("Angle", propDetection.estimateAngleToObject(AngleUnit.DEGREES));
-            if (propDetection.estimateAngleToObject(AngleUnit.DEGREES) * -1 > 5){
-                propPosition = POSITION.LEFT;
-            }
-            else if (propDetection.estimateAngleToObject(AngleUnit.DEGREES) * -1 < -5){
-                propPosition = POSITION.RIGHT;
-            }
-            else{
-                propPosition = POSITION.MIDDLE;
+            int useRecognition = 0;
+            for (int i = 0; i < currentRecognitions.size(); i++){
+                if (currentRecognitions.get(i).getWidth() > 400 || currentRecognitions.get(i).getHeight() > 200){
+                    useRecognition++;
+                }
             }
 
+            if (currentRecognitions.size() > useRecognition) {
+                telemetry.addData("usig recognition", useRecognition);
+
+                Recognition propDetection = currentRecognitions.get(useRecognition);
+                if (propDetection.getLabel().equals("r")) {
+                    propColor = COLOR.RED;
+                } else if (propDetection.getLabel().equals("b")) {
+                    propColor = COLOR.BLUE;
+                }
+                telemetry.addData("Angle", propDetection.estimateAngleToObject(AngleUnit.DEGREES));
+                if (propDetection.estimateAngleToObject(AngleUnit.DEGREES) * -1 > 5) {
+                    propPosition = POSITION.LEFT;
+                } else if (propDetection.estimateAngleToObject(AngleUnit.DEGREES) * -1 < -5) {
+                    propPosition = POSITION.RIGHT;
+                } else {
+                    propPosition = POSITION.MIDDLE;
+                }
+            }
+        }
+        else{
+            telemetry.addLine("nothing detected");
         }
 
         // Step through the list of recognitions and display info for each one.
-        for (Recognition recognition : currentRecognitions) {
-            double x = (recognition.getLeft() + recognition.getRight()) / 2 ;
-            double y = (recognition.getTop()  + recognition.getBottom()) / 2 ;
-
-            telemetry.addData(""," ");
-            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100);
-            telemetry.addData("- Position", "%.0f / %.0f", x, y);
-            telemetry.addData("- Size", "%.0f x %.0f", recognition.getWidth(), recognition.getHeight());
-        }
+//        for (Recognition recognition : currentRecognitions) {
+//            double x = (recognition.getLeft() + recognition.getRight()) / 2 ;
+//            double y = (recognition.getTop()  + recognition.getBottom()) / 2 ;
+//
+//            telemetry.addData(""," ");
+//            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100);
+//            telemetry.addData("- Position", "%.0f / %.0f", x, y);
+//            telemetry.addData("- Size", "%.0f x %.0f", recognition.getWidth(), recognition.getHeight());
+//        }
     }
 
 

@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 public class calibrationTransferTEst extends CommandOpMode {
     CalibrationTransfer file = new CalibrationTransfer(telemetry);
     RobotHardware hardware = new RobotHardware(hardwareMap);
-    DrivetrainSubsystem swerve = new DrivetrainSubsystem(hardware, telemetry, false);
+    DrivetrainSubsystem swerve = new DrivetrainSubsystem(hardware, telemetry, false, false);
 
 
 
