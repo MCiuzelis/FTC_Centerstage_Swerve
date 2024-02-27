@@ -17,8 +17,7 @@ import java.util.List;
 
 public class PropDetectionProcessor extends Thread implements VisionProcessor {
 
-    private static final String FILE_NAME = "/sdcard/FIRST/tflitemodels/ssd_prop_meta_step_500000.tflite";
-    //private static final String FILE_NAME = "/sdcard/ssd_prop_meta_step_100000.tflite";
+    private static final String FILE_NAME = "/sdcard/FIRST/tflitemodels/ssd_prop_meta_step_max.tflite";
     private static final String[] LABELS = {
             "b", "r",
     };
@@ -55,7 +54,7 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
                 .setModelFileName(FILE_NAME)
                 .setModelLabels(LABELS)
                 .build();
-        ODproc.setMinResultConfidence(0.2f);
+        ODproc.setMinResultConfidence(0.85f);
 
 
         //telemetryTfod();

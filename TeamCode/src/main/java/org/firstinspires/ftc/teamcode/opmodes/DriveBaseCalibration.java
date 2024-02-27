@@ -24,6 +24,12 @@ public class DriveBaseCalibration extends LinearOpMode {
 
         drivetrainSubsystem = new DrivetrainSubsystem(robot, telemetry, true, false);
         drivetrainSubsystem.calibrate();
+        while (!drivetrainSubsystem.areModulesCalibrated()){
+            sleep(1);
+            drivetrainSubsystem.updateModuleAngles();
+        }
+        drivetrainSubsystem.resetAllEncoders();
+        drivetrainSubsystem.resetImuOffset();
         waitForStart();
 
         while (opModeIsActive()){

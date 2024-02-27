@@ -24,12 +24,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
     public static double turnVelocityMultiplierAtMaxSpeed = 0.75;
     public static double turnVelocityMultiplierCutoffValue = 0.8;
 
-    public static double maxAcceleration = 800;
-    public static double maxStrafeAcceleration = 200;
-
-    public static double K_rotation = 4500;
-    public static double angleHoldingKp = 20000;
-    public static double maxRobotAngleError = Math.toRadians(1);
+    public static double K_rotation = 5000;
+    public static double angleHoldingKp = 12000;
+    public static double turnDelay = 0.5;
 
     Translation2d frontLeftLocation = new Translation2d(0.0750555, 0.13);
     Translation2d frontRightLocation = new Translation2d(0.0750555, -0.13);
@@ -54,6 +51,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Pose2d driveInput = new Pose2d();
 
     ElapsedTime odometryTimer = new ElapsedTime();
+    ElapsedTime delayTimer = new ElapsedTime();
     public com.arcrobotics.ftclib.geometry.Pose2d robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d();
     Rotation2d imuOffset;
 
@@ -79,7 +77,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
      public void drive(){
          ChassisSpeeds chassisSpeed = getChassisSpeedFromEncoders();
-         double turnVelocityMultiplier = getTurnVelocityMultiplier(chassisSpeed);
+         //double turnVelocityMultiplier = getTurnVelocityMultiplier(chassisSpeed);
+         double turnVelocityMultiplier = 1;
 
          SwerveModuleState[] moduleStates = translateChassisSpeedToModuleStates(
                  driveInput,
@@ -92,9 +91,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
          if (frontLeft.speedMetersPerSecond != 0) frontLeftModuleAngle = frontLeft.angle;
          if (frontRight.speedMetersPerSecond != 0) frontRightModuleAngle = frontRight.angle;
          if (back.speedMetersPerSecond != 0) backModuleAngle = back.angle;
-
-         double joystickAngle = Math.atan2(driveInput.getY(), driveInput.getX());
-         double acceleration = Math.abs(Math.sin(joystickAngle)) * (maxAcceleration - maxStrafeAcceleration) + maxStrafeAcceleration;
 
          //old begin
 //         double frontLeftTurnCorrection = FrontLeft.getTurnCorrection(frontLeftModuleAngle.getRadians(), turnPID) * turnVelocityMultiplier;
@@ -132,9 +128,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
         //vectorMethod:
         Vector2d[] motorPowers = getScaledModuleVectors(
-                FrontLeft.getModuleMotorVelocities(frontLeft.speedMetersPerSecond, frontLeftModuleAngle.getRadians(), acceleration, turnVelocityMultiplier),
-                FrontRight.getModuleMotorVelocities(frontRight.speedMetersPerSecond, frontRightModuleAngle.getRadians(), acceleration, turnVelocityMultiplier),
-                Back.getModuleMotorVelocities(back.speedMetersPerSecond, backModuleAngle.getRadians(), acceleration, turnVelocityMultiplier));
+                FrontLeft.getModuleMotorVelocities(frontLeft.speedMetersPerSecond, frontLeftModuleAngle.getRadians(), turnVelocityMultiplier),
+                FrontRight.getModuleMotorVelocities(frontRight.speedMetersPerSecond, frontRightModuleAngle.getRadians(), turnVelocityMultiplier),
+                Back.getModuleMotorVelocities(back.speedMetersPerSecond, backModuleAngle.getRadians(), turnVelocityMultiplier));
 
         FrontLeft.setPowers(motorPowers[0].getX(), motorPowers[0].getY());
         FrontRight.setPowers(motorPowers[1].getX(), motorPowers[1].getY());
@@ -192,36 +188,24 @@ public class DrivetrainSubsystem extends SubsystemBase {
         double vyPower = driveInput.getX() * highestPossibleMotorVelocity * voltageMultiplier;
         double turnPower = getTurnPower(driveInput.getHeading(), imuAngle.getRadians(), driveInput) * voltageMultiplier;
 
-        if (isAutonomous) return kinematics.toSwerveModuleStates(new ChassisSpeeds(vxPower, vyPower, driveInput.getHeading()));
+        if (isAutonomous) return kinematics.toSwerveModuleStates(new ChassisSpeeds(vxPower, vyPower, driveInput.getHeading() * K_rotation));
         else return kinematics.toSwerveModuleStates(ChassisSpeeds.fromFieldRelativeSpeeds(vxPower, vyPower, turnPower, imuAngle));
     }
 
     public double getTurnPower(double turnSpeed, double imuAngle, Pose2d driveInput){
         double angleError = targetRobotAngleRads - imuAngle;
-        telemetry.addData("targetAngle", Math.toDegrees(targetRobotAngleRads));
         double driveMagnitude = Math.hypot(driveInput.getX(), driveInput.getY());
 
         if (turnSpeed == 0 && driveMagnitude != 0) {
             if (Math.abs(angleError) > Math.PI){
                 angleError -= Math.signum(angleError) * 2d * Math.PI;
             }
-            double output = angleHoldingKp * driveMagnitude * angleError;
-
-            telemetry.addData("angle errror", angleError);
-            telemetry.addData("magnitude", driveMagnitude);
-            telemetry.addData("output", output);
-
-            return output;
+            return angleHoldingKp * driveMagnitude * angleError;
         }
 
         else{
-            telemetry.addData("angle errror", angleError);
-            telemetry.addData("magnitude", driveMagnitude);
-            telemetry.addData("output", 0);
-
-            if (turnSpeed != 0){
-                targetRobotAngleRads = imuAngle;
-            }
+            if (turnSpeed != 0 || delayTimer.seconds() < turnDelay) targetRobotAngleRads = imuAngle;
+            else delayTimer.reset();
             return turnSpeed * K_rotation;
         }
     }
@@ -270,5 +254,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
     public void resetImuOffset(){
         imuOffset = new Rotation2d();
         hardware.imu.reset();
+    }
+
+    public void updateModuleAngles(){
+        FrontLeft.updateAngle();
+        FrontRight.updateAngle();
+        Back.updateAngle();
     }
 }

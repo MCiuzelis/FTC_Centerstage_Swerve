@@ -20,15 +20,18 @@ public class SwerveModule implements Runnable{
     static double gobildaMotorGearRatio = (1 + (46d / 17)) * (1 + (46d / 17)) * 28;
     public static double ticksInOneRad = gobildaMotorGearRatio * 62 / (33 * 2 * Math.PI);
 
-    public static double fastCalibrationSpeed = 900;
-    public static double slowCalibrationSpeed = 250;
+    public static double fastCalibrationSpeed = 700;
+    public static double slowCalibrationSpeed = 400;
 
-    public static double turnKp = 0.6;
+    public static double turnKp = 0.41;
     public static double turnKi = 0.0005;
-    public static double turnKd = 0.0002;
+    public static double turnKd = 0.0003;
     public static double turnPowerCap = 0.45;
-    public static double driveKp = 0;
+    public static double driveKp = 0.00015;
     public static double driveKv = 0.00051;
+    public static double maxAcceleration = 420;
+
+    double prevVelocity = 0;
 
     PIDController turnPID;
     Telemetry telemetry;
@@ -37,8 +40,7 @@ public class SwerveModule implements Runnable{
     DigitalChannel calibrationSensor;
 
     double driveSpeedMultiplier = 1;
-    double prevDrivingVelocity = 0;
-    double currentAngle = 0;
+    double currentAngleRads = 0;
     boolean DEBUG_MODE;
     public boolean moduleCalibrated = false;
 
@@ -55,13 +57,8 @@ public class SwerveModule implements Runnable{
 
     public double getTurnCorrection(double targetAngle) {
         updatePID();
-        currentAngle = getNormalisedAngleRads();
-
-
-        telemetry.addData("startGamePadAngle", Math.toDegrees(targetAngle));
-        telemetry.addData("startingAngle", Math.toDegrees(currentAngle));
+        double currentAngle = getNormalisedAngleRads();
         double adjustedTargetAngle = targetAngle;
-
         double error = adjustedTargetAngle - currentAngle;
 
 
@@ -79,36 +76,34 @@ public class SwerveModule implements Runnable{
         double power = clamp(turnPID.calculate(currentAngle, adjustedTargetAngle), -turnPowerCap, turnPowerCap);
 
         if (DEBUG_MODE) {
-            telemetry.addData("currentAngle", Math.toDegrees(currentAngle));
+            telemetry.addData("currentAngle", getAngleDegrees());
             telemetry.addData("TargetAngle", Math.toDegrees(adjustedTargetAngle));
             telemetry.addData("power", power);
         }
         return power;
     }
 
-    public double getDriveCorrection(double targetVelocity, double acceleration) {
+    public double getDriveCorrection(double targetVelocity) {
         targetVelocity *= driveSpeedMultiplier;
 
-        double error = targetVelocity - prevDrivingVelocity;
-        double adjustedTargetVelocity;
-
-        if (Math.abs(error) > acceleration) {
-            adjustedTargetVelocity = prevDrivingVelocity + Math.signum(error) * acceleration;
-        } else adjustedTargetVelocity = targetVelocity;
-
-        prevDrivingVelocity = adjustedTargetVelocity;
-
         if (DEBUG_MODE) {
-            telemetry.addData("targetVelocity", targetVelocity * driveSpeedMultiplier);
+            telemetry.addData("targetVelocity", targetVelocity);
             telemetry.addData("currentVelocity", getDrivingVelocity());
         }
 
-        double output = driveKv * adjustedTargetVelocity + driveKp * (adjustedTargetVelocity - getDrivingVelocity());
+        double velocityError = targetVelocity - prevVelocity;
+        if (velocityError > maxAcceleration){
+            targetVelocity = prevVelocity + maxAcceleration * Math.signum(velocityError);
+        }
+        prevVelocity = targetVelocity;
+
+        double output = driveKv * targetVelocity + driveKp * (targetVelocity - getDrivingVelocity());
+        telemetry.addData("output", output);
         return clamp(output, -1, 1);
     }
 
-    public Vector2d getModuleMotorVelocities(double targetDriveVelocity, double targetAngle, double acceleration, double turnMultiplier){
-        return new Vector2d(getDriveCorrection(targetDriveVelocity, acceleration), getTurnCorrection(targetAngle) * turnMultiplier)
+    public Vector2d getModuleMotorVelocities(double targetDriveVelocity, double targetAngle, double turnMultiplier){
+        return new Vector2d(getDriveCorrection(targetDriveVelocity), getTurnCorrection(targetAngle) * turnMultiplier)
         .rotateBy(-45);
     }
 
@@ -138,15 +133,17 @@ public class SwerveModule implements Runnable{
 
     public double getAngleTicks() {return (TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / 2d;}
 
-    public double getAngleRads() {return getAngleTicks() / ticksInOneRad;}
+    public void updateAngle() {currentAngleRads = getAngleTicks() / ticksInOneRad;}
 
-    public double getNormalisedAngleRads() {return normalise(getAngleRads());}
+    public double getAngleRads() {return currentAngleRads;}
 
-    public double getAngleDegrees() {return Math.toDegrees(getAngleRads());}
+    public double getNormalisedAngleRads() {return normalise(currentAngleRads);}
+
+    public double getAngleDegrees() {return Math.toDegrees(currentAngleRads);}
 
     public double getTurningVelocity() {return (TopMotor.getVelocity() + BottomMotor.getVelocity()) / 2d;}
 
-    public Rotation2d getAngleRotation2d() {return new Rotation2d(getAngleRads());}
+    public Rotation2d getAngleRotation2d() {return new Rotation2d(currentAngleRads);}
 
     public double getDrivingVelocity() {return (TopMotor.getVelocity() - BottomMotor.getVelocity()) / 2d;}
 

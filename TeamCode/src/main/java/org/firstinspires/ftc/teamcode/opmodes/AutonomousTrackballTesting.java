@@ -31,23 +31,23 @@ import org.firstinspires.ftc.teamcode.hardware.Localizer;
 @Autonomous(name = "AutonomousTrackballTesting")
 
 public class AutonomousTrackballTesting extends CommandOpMode {
-    public static double maxProfileAcceleration = 25;
-    public static double maxTranslationalVelocity = 15;
+    public static double maxProfileAcceleration = 6.5;
+    public static double maxTranslationalVelocity = 6.5;
 
-    public static double maxAngularVelocity = 4;
-    public static double maxAngularAcceleration = 5;
+    public static double maxAngularVelocity = 2.5;
+    public static double maxAngularAcceleration = 2.5;
 
-    public static double TranslationKp = 0;
+    public static double TranslationKp = 0.017;
     public static double TranslationKi = 0;
     public static double TranslationKd = 0;
-    public static double translationKv = 0.014;
-    public static double translationKa = 0;
+    public static double translationKv = 0.0089;
+    public static double translationKa = 0.0086;
 
-    public static double RotationKp = 0;
+    public static double RotationKp = 0.11;
     public static double RotationKi = 0;
     public static double RotationKd = 0;
-    public static double rotationKv = 0.2;
-    public static double rotationKa = 0;
+    public static double rotationKv = 0.34;
+    public static double rotationKa = 0.026;
 
     Pose2d startPose =  new Pose2d();
 
@@ -78,6 +78,7 @@ public class AutonomousTrackballTesting extends CommandOpMode {
         swerve = new DrivetrainSubsystem(hardware, telemetry, false, true);
 
         swerve.resetAllEncoders();
+        swerve.resetImuOffset();
         hardware.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
     }
 
@@ -87,18 +88,23 @@ public class AutonomousTrackballTesting extends CommandOpMode {
     public void run() {
         if (!isOpModeStarted){
             TrajectorySequence trSequence = new TrajectorySequenceBuilder(startPose, trajectoryVelocityConstraint, accelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                    .waitSeconds(5)
-                    .lineToLinearHeading(new com.acmerobotics.roadrunner.geometry.Pose2d(20, 0, Math.toRadians(90)))
-                    .waitSeconds(5)
-                    .lineToLinearHeading(new com.acmerobotics.roadrunner.geometry.Pose2d(0, 0, 0))
+                    .forward(37)
+                    .waitSeconds(1.5)
+                    .back(10)
+                    .waitSeconds(1.5)
+                    .turn(Math.toRadians(-90))
+                    .waitSeconds(1.5)
+                    .back(30)
                     .build();
             trajectorySequenceRunner.followTrajectorySequenceAsync(trSequence);
+            localizer.reset();
 
             hardware.startIMUThread(this);
             isOpModeStarted = true;
         }
 
         hardware.clearBulkCache();
+        swerve.updateModuleAngles();
         CommandScheduler.getInstance().run();
 
         localizer.updateOdometry();
@@ -106,7 +112,7 @@ public class AutonomousTrackballTesting extends CommandOpMode {
         Pose2d robotVelocity = localizer.getRobotCentricVelocity();
         Pose2d fieldCentricPosition = localizer.getFieldCentricPosition();
 
-        DriveSignal driveSignal = trajectorySequenceRunner.update(robotPosition, robotVelocity);
+        DriveSignal driveSignal = trajectorySequenceRunner.update(fieldCentricPosition, robotVelocity);
         Pose2d correction = getCorrection(driveSignal);
         swerve.setGamepadInput(correction);
         swerve.drive();
@@ -136,8 +142,8 @@ public class AutonomousTrackballTesting extends CommandOpMode {
 
     private Pose2d getCorrection (DriveSignal signal) {
         if (signal != null) {
-            Vector2d driveVelocityCorrection = new Vector2d(-signal.getVel().getY(), signal.getVel().getX());
-            Vector2d driveAccelerationCorrection = new Vector2d(-signal.getAccel().getY(), signal.getVel().getX());
+            Vector2d driveVelocityCorrection = new Vector2d(signal.getVel().getY(), signal.getVel().getX());
+            Vector2d driveAccelerationCorrection = new Vector2d(signal.getAccel().getY(), signal.getVel().getX());
             driveVelocityCorrection = driveVelocityCorrection.times(translationKv);
             driveAccelerationCorrection = driveAccelerationCorrection.times(translationKa);
 

@@ -17,10 +17,10 @@ public class TrajectoriesNew {
     Telemetry telemetry;
     ArmSubsystem armSubsystem;
 
-    public static double angularVelocityConstraint = 0;
-    public static double angularAccelerationConstraint = 0;
-    public static double translationalVelocityConstraint = 0;
-    public static double translationalAccelerationConstraint = 0;
+    public static double angularVelocityConstraint = 3;
+    public static double angularAccelerationConstraint = 3;
+    public static double translationalVelocityConstraint = 6;
+    public static double translationalAccelerationConstraint = 6;
 
     Pose2d blueStartingPosition = new Pose2d();
     Pose2d redStartingPosition = new Pose2d();
@@ -34,6 +34,10 @@ public class TrajectoriesNew {
 
     public TrajectoriesNew(ArmSubsystem armSubsystem, Telemetry telemetry) {
         this.armSubsystem = armSubsystem;
+        this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+    }
+
+    public TrajectoriesNew(Telemetry telemetry) {
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
     }
 
@@ -58,26 +62,36 @@ public class TrajectoriesNew {
             switch (position) {
                 case RIGHT:
                     return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
+                            .forward(10)
+                            .turn(Math.toRadians(-90))
+                            .forward(3)
+                            .waitSeconds(2)
+                            .back(12)
+                            .strafeLeft(3.5)
                             .build();
 
                 case LEFT:
                     return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
+                            .forward(11)
+                            .turn(Math.toRadians(-90))
+                            .back(8)
+                            .waitSeconds(1)
+                            .back(4)
+                            .strafeRight(3.5)
                             .build();
 
                 case MIDDLE:
                     return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
-                            .addTemporalMarker(()-> buildBackboardCycle(new Pose2d(0,0,0)))
+                            .forward(11.5)
+                            .back(3)
+                            .waitSeconds(1)
+                            .turn(Math.toRadians(-90))
+                            .back(12)
                             .build();
 
                 default:
                     throw new RuntimeException("bad");
             }
         } else return null;
-    }
-
-
-    public TrajectorySequence buildBackboardCycle (Pose2d startingPosition){
-        return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
-                .build();
     }
 }

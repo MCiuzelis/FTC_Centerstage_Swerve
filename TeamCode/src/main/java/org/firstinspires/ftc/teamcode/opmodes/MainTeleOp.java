@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.commands.DepositPixelsCommand;
 import org.firstinspires.ftc.teamcode.commands.SetArmToStateCommand;
 import org.firstinspires.ftc.teamcode.commands.lowLevelCommands.SetClawStateCommand;
 import org.firstinspires.ftc.teamcode.hardware.GamePad;
+import org.firstinspires.ftc.teamcode.hardware.Localizer;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
@@ -33,6 +34,7 @@ public class MainTeleOp extends CommandOpMode {
     CalibrationTransfer file;
     ArmSubsystem armSubsystem;
     GamePad gamePad;
+    Localizer localizer;
 
     double loopTime = 0;
     boolean opModeStarted = false;
@@ -56,6 +58,7 @@ public class MainTeleOp extends CommandOpMode {
         telemetry.update();
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        localizer = new Localizer(hardware, telemetry, true);
         gamePad = new GamePad(gamepad1);
 
 
@@ -88,7 +91,10 @@ public class MainTeleOp extends CommandOpMode {
                 telemetry.addLine("initialising standard teleOp");
                 telemetry.addLine("waiting for start ✅");
                 swerve.calibrate();
-                while (!swerve.areModulesCalibrated()){sleep(5);}
+                while (!swerve.areModulesCalibrated()){
+                    sleep(1);
+                    swerve.updateModuleAngles();
+                }
                 swerve.resetAllEncoders();
                 swerve.resetImuOffset();
                 break;
@@ -126,17 +132,19 @@ public class MainTeleOp extends CommandOpMode {
             swerve.resetImuOffset();
         }
 
-
         hardware.clearBulkCache();
+        swerve.updateModuleAngles();
+
+        //localizer.updateOdometry();
         swerve.setGamepadInput(gamePad.getGamepadInput());
         CommandScheduler.getInstance().run();
         swerve.drive();
 
-        telemetry.addData("distance", hardware.distanceSensor.getDistance(DistanceUnit.CM));
 
         double loop = System.nanoTime();
         telemetry.addData("Loop time ms",  (loop - loopTime) / 1000000);
         telemetry.addData("imuAngle", hardware.imuAngle.getDegrees());
+        //telemetry.addData("robotPosition", localizer.getRobotCentricPosition());
         loopTime = loop;
 
         telemetry.addData("time left: ", 120 - getRuntime());

@@ -1,8 +1,4 @@
 package org.firstinspires.ftc.teamcode.utils;
-
-import static org.firstinspires.ftc.teamcode.opmodes.MainAutonomous.maxAngularAcceleration;
-import static org.firstinspires.ftc.teamcode.opmodes.MainAutonomous.maxAngularVelocity;
-
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.constraints.SwerveVelocityConstraint;
@@ -22,6 +18,8 @@ public class Trajectories {
     SwerveVelocityConstraint swerveVelocityConstraint;
     TrajectoryAccelerationConstraint trajectoryAccelerationConstraint;
     public boolean stopOpMode = false;
+    double maxAngularVelocity = 0;
+    double maxAngularAcceleration = 0;
 
 
 
@@ -47,7 +45,6 @@ public class Trajectories {
                 switch (position) {
                     case RIGHT:
                         trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                                .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
                                 .forward(27.5)
                                 .turn(Math.toRadians(-90))
                                 .lineTo(new Vector2d(24, 0))
@@ -71,7 +68,6 @@ public class Trajectories {
 
                     case LEFT:
                         trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                                .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
                                 .forward(27)
                                 .turn(Math.toRadians(-90))
                                 .waitSeconds(0.5)
@@ -96,7 +92,6 @@ public class Trajectories {
 
                     case MIDDLE:
                         trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                                .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
                                 .forward(28)
                                 .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                                 .waitSeconds(0.5)
@@ -124,7 +119,6 @@ public class Trajectories {
             switch (position) {
                 case LEFT:
                     trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                            .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
                             .forward(27.5)
                             .turn(Math.toRadians(90))
                             .lineTo(new Vector2d(24, 0))
@@ -148,7 +142,6 @@ public class Trajectories {
 
                 case RIGHT:
                     trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                            .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
                             .forward(27)
                             .turn(Math.toRadians(90))
                             .waitSeconds(0.5)
@@ -173,7 +166,6 @@ public class Trajectories {
 
                 case MIDDLE:
                     trajectory = new TrajectorySequenceBuilder(robotPosition, swerveVelocityConstraint, trajectoryAccelerationConstraint, maxAngularVelocity, maxAngularAcceleration)
-                            .setTurnConstraint(maxAngularVelocity, maxAngularAcceleration)
                             .forward(28)
                             .addDisplacementMarker(() -> armSubsystem.update(ArmSubsystem.CLAW_STATE.LEFT_OPENED))
                             .waitSeconds(0.5)

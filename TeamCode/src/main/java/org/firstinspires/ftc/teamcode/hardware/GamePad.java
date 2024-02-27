@@ -1,4 +1,6 @@
 package org.firstinspires.ftc.teamcode.hardware;
+import static org.firstinspires.ftc.teamcode.hardware.Globals.areSlidesUp;
+
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.geometry.Vector2d;
@@ -29,8 +31,13 @@ public class GamePad extends GamepadEx {
             turn *= 0.35;
         }
         else if (gamepad.right_trigger < 0.1) {
-            drive = drive.scale(0.7);
-            turn *= 0.6;
+            drive = drive.scale(0.8);
+            turn *= 0.8;
+        }
+
+        if (areSlidesUp){
+            drive = drive.scale(0.5);
+            turn *= 0.8;
         }
 
         return new Pose2d(drive.getX(), drive.getY(), turn);

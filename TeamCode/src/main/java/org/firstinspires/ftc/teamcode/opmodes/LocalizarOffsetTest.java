@@ -40,7 +40,7 @@ public class LocalizarOffsetTest extends CommandOpMode {
 
     double startingDistance = 0;
     double sum = 0;
-    double count = 0;
+    double count = 1;
 
 
 
@@ -68,6 +68,8 @@ public class LocalizarOffsetTest extends CommandOpMode {
 
     @Override
     public void run(){
+        hardware.clearBulkCache();
+
         if (!opModeStarted){
             hardware.startIMUThread(this);
             opModeStarted = true;
@@ -78,7 +80,6 @@ public class LocalizarOffsetTest extends CommandOpMode {
             swerve.resetImuOffset();
         }
 
-        hardware.clearBulkCache();
         swerve.setGamepadInput(gamePad.getGamepadInput());
         CommandScheduler.getInstance().run();
         swerve.drive();
@@ -92,6 +93,8 @@ public class LocalizarOffsetTest extends CommandOpMode {
             sum += (hardware.distanceSensor.getDistance(DistanceUnit.CM) - startingDistance) / robotPosition.getY();
         }
 
+        telemetry.addData("sum", sum);
+        telemetry.addData("count", count);
         telemetry.addData("multiplier", sum / count);
         telemetry.update();
 

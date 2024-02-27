@@ -45,7 +45,7 @@ public class SwerveTest extends OpMode {
         }
 
         double power = swerve.Back.getTurnCorrection(angle);
-        swerve.Back.setTurnPower(power);
+        //swerve.Back.setTurnPower(power);
 
         //double power = Math.hypot(gamepad1.right_stick_y, gamepad1.right_stick_x);
         //swerve.FrontLeft.setDrivePower(swerve.FrontLeft.getDriveCorrection(power * highestPossibleMotorVelocity, 0));

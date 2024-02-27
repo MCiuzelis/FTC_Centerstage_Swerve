@@ -13,11 +13,11 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 @Config
 public class Localizer {
 
-    public static double sensorOffsetX = 0;
-    public static double sensorOffsetY = 0;
+    public static double sensorOffsetX = 0.3075;
+    public static double sensorOffsetY = -0.2195;
 
     public static double velocityLowPassGain = 0.5;
-    public static double trackBallUnitsInOneCm = 1;
+    public static double trackBallUnitsInOneCm = 52;
 
     double imuAdditiveOffset = 0;
     double prevImuAngle = 0;
@@ -72,14 +72,18 @@ public class Localizer {
                                           robotCentricPosition.getY() - prevRobotPosition.getY(),
                                       robotCentricPosition.getHeading() - prevRobotPosition.getHeading());
 
-        robotCentricVelocity =  new Pose2d(xFilter.estimate(positionDelta.getX() / dt),
-                                    yFilter.estimate(positionDelta.getY() / dt),
-                                    headingFilter.estimate(positionDelta.getHeading() / dt));
+        double magnitude = Math.hypot(positionDelta.getX(), positionDelta.getY());
+        double dX = magnitude * -Math.sin(imuAngle) * Math.signum(positionDelta.getX());
+        double dY = magnitude * Math.cos(imuAngle) * Math.signum(positionDelta.getY());
 
-        fieldCentricPosition = new Pose2d(fieldCentricPosition.getX() + positionDelta.getX() * Math.cos(imuAngle),
-                                          fieldCentricPosition.getY() + positionDelta.getY() * Math.sin(imuAngle),
+        fieldCentricPosition = new Pose2d(fieldCentricPosition.getX() + dX,
+                                          fieldCentricPosition.getY() + dY,
                                              imuAngle);
         prevRobotPosition = robotCentricPosition;
+
+        robotCentricVelocity =  new Pose2d(xFilter.estimate(dX / dt),
+                yFilter.estimate(dY / dt),
+                headingFilter.estimate(positionDelta.getHeading() / dt));
     }
 
     private Pose2d getCurrentPosition(double imuAngle){
@@ -117,5 +121,9 @@ public class Localizer {
 
     public double calculateStartPoseXOffset (){
         return distanceSum / counter;
+    }
+
+    public void reset(){
+        robot.trackBall.reset();
     }
 }

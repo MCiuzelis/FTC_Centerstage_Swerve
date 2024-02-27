@@ -82,12 +82,12 @@ public class RobotHardware{
         BT_Motor = initMotor(hw, "EH_Motor_2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         BB_Motor = initMotor(hw, "CH_Motor_0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        clawAngleServo = initServo(hw, "EH_Servo_0", Servo.Direction.REVERSE);
+        clawAngleServo = initServo(hw, "EH_Servo_3", Servo.Direction.REVERSE);
         clawLeftServo = initServo(hw, "EH_Servo_1", Servo.Direction.FORWARD);
         clawRightServo = initServo(hw, "EH_Servo_2", Servo.Direction.REVERSE);
-        axonLeft = initServo(hw, "EH_Servo_3", Servo.Direction.FORWARD);
+        axonLeft = initServo(hw, "EH_Servo_5", Servo.Direction.FORWARD);
         axonRight = initServo(hw, "EH_Servo_4", Servo.Direction.FORWARD);
-        planeServo = initServo(hw, "EH_Servo_5", Servo.Direction.REVERSE);
+        planeServo = initServo(hw, "EH_Servo_0", Servo.Direction.REVERSE);
 
         planeServo.setPosition(planeLockPosition);
 
