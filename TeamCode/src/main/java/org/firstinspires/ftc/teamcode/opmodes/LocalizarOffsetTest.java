@@ -12,6 +12,7 @@ import com.arcrobotics.ftclib.command.InstantCommand;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -26,6 +27,7 @@ import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
 
 @Photon
+@Disabled
 @TeleOp(name = "LocalizerTest")
 
 
@@ -73,7 +75,7 @@ public class LocalizarOffsetTest extends CommandOpMode {
         if (!opModeStarted){
             hardware.startIMUThread(this);
             opModeStarted = true;
-            startingDistance = hardware.distanceSensor.getDistance(DistanceUnit.CM);
+            //startingDistance = hardware.distanceSensor.getDistance(DistanceUnit.CM);
         }
 
         if (gamepad1.share){
@@ -90,7 +92,7 @@ public class LocalizarOffsetTest extends CommandOpMode {
 
         if (gamepad1.cross){
             count += 1;
-            sum += (hardware.distanceSensor.getDistance(DistanceUnit.CM) - startingDistance) / robotPosition.getY();
+            //sum += (hardware.distanceSensor.getDistance(DistanceUnit.CM) - startingDistance) / robotPosition.getY();
         }
 
         telemetry.addData("sum", sum);

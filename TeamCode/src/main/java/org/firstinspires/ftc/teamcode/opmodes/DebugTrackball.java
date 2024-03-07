@@ -7,6 +7,7 @@ import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.hardware.GamePad;
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
 import org.firstinspires.ftc.teamcode.hardware.Localizer;
 
 @Photon
+@Disabled
 @TeleOp(name = "DEBUG_TRACKBALL")
 
 

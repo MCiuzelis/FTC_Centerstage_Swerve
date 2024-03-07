@@ -8,6 +8,7 @@ import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
+import com.arcrobotics.ftclib.geometry.Twist2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.SwerveDriveKinematics;
@@ -25,7 +26,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     public static double turnVelocityMultiplierCutoffValue = 0.8;
 
     public static double K_rotation = 5000;
-    public static double angleHoldingKp = 12000;
+    public static double angleHoldingKp = 10000;
     public static double turnDelay = 0.5;
 
     Translation2d frontLeftLocation = new Translation2d(0.0750555, 0.13);
@@ -45,15 +46,19 @@ public class DrivetrainSubsystem extends SubsystemBase {
     double targetRobotAngleRads = 0;
 
     public SwerveModule FrontLeft, FrontRight, Back;
-    SwerveDriveKinematics kinematics = new SwerveDriveKinematics(frontLeftLocation, frontRightLocation, backLocation);
-    SwerveDriveOdometry odometry = new SwerveDriveOdometry(kinematics, new Rotation2d());
+    SwerveDriveKinematics kinematics;
+    SwerveDriveOdometry odometry;
 
     Pose2d driveInput = new Pose2d();
 
     ElapsedTime odometryTimer = new ElapsedTime();
+    double prevOdometryTime = 0;
     ElapsedTime delayTimer = new ElapsedTime();
     public com.arcrobotics.ftclib.geometry.Pose2d robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d();
+    Pose2d currentPos = new Pose2d();
+
     Rotation2d imuOffset;
+    ChassisSpeeds chassisSpeeds;
 
 
 
@@ -68,6 +73,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
         Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.backCalibrationSensor, DEBUG_MODE, telemetry);
 
         this.imuOffset = new Rotation2d(imuOffsetRads);
+        kinematics = new SwerveDriveKinematics(frontLeftLocation, frontRightLocation, backLocation);
+        odometry = new SwerveDriveOdometry(kinematics, hardware.imu.getRotation2d());
+
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 
@@ -76,7 +84,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
      public void drive(){
-         ChassisSpeeds chassisSpeed = getChassisSpeedFromEncoders();
+         //ChassisSpeeds chassisSpeed = getChassisSpeedFromEncoders();
          //double turnVelocityMultiplier = getTurnVelocityMultiplier(chassisSpeed);
          double turnVelocityMultiplier = 1;
 
@@ -160,7 +168,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
         return output;
     }
 
-    public ChassisSpeeds getChassisSpeedFromEncoders(){
+    public void updateChassisSpeedFromEncoders(){
         SwerveModuleState frontLeftState =
                 new SwerveModuleState(FrontLeft.getDrivingVelocity(), FrontLeft.getAngleRotation2d());
         SwerveModuleState frontRightState =
@@ -168,7 +176,36 @@ public class DrivetrainSubsystem extends SubsystemBase {
         SwerveModuleState backState =
                 new SwerveModuleState(Back.getDrivingVelocity(), Back.getAngleRotation2d());
 
-        return kinematics.toChassisSpeeds(frontLeftState, frontRightState, backState);
+        chassisSpeeds = kinematics.toChassisSpeeds(frontLeftState, frontRightState, backState);
+    }
+
+    public ChassisSpeeds getChassisSpeedFromEncoders(){
+        return chassisSpeeds;
+    }
+
+    public void updateOdometryFromMotorEncoders(){
+        SwerveModuleState frontLeftState =
+                new SwerveModuleState(FrontLeft.getDrivingVelocity(), FrontLeft.getAngleRotation2d());
+        SwerveModuleState frontRightState =
+                new SwerveModuleState(FrontRight.getDrivingVelocity(), FrontRight.getAngleRotation2d());
+        SwerveModuleState backState =
+                new SwerveModuleState(Back.getDrivingVelocity(), Back.getAngleRotation2d());
+        robotPosition = odometry.updateWithTime(odometryTimer.seconds(), hardware.imuAngle, frontLeftState, frontRightState, backState);
+    }
+
+    public com.acmerobotics.roadrunner.geometry.Vector2d getRobotXYVelocity(){
+        return new com.acmerobotics.roadrunner.geometry.Vector2d(chassisSpeeds.vxMetersPerSecond, chassisSpeeds.vyMetersPerSecond);
+    }
+
+    public Pose2d getRobotPosition(){
+        double currentTime = odometryTimer.seconds();
+        double dt = currentTime - prevOdometryTime;
+        prevOdometryTime = currentTime;
+
+        currentPos = new Pose2d(currentPos.getX() + chassisSpeeds.vxMetersPerSecond * dt,
+                                currentPos.getY() + chassisSpeeds.vyMetersPerSecond * dt,
+                                   hardware.imuAngle.getRadians());
+        return currentPos;
     }
 
     public double getTurnVelocityMultiplier(ChassisSpeeds chassisSpeeds) {
@@ -208,16 +245,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
             else delayTimer.reset();
             return turnSpeed * K_rotation;
         }
-    }
-
-    public void updateOdometryFromMotorEncoders(){
-        SwerveModuleState frontLeftState =
-                new SwerveModuleState(FrontLeft.getDrivingVelocity(), FrontLeft.getAngleRotation2d());
-        SwerveModuleState frontRightState =
-                new SwerveModuleState(FrontRight.getDrivingVelocity(), FrontRight.getAngleRotation2d());
-        SwerveModuleState backState =
-                new SwerveModuleState(Back.getDrivingVelocity(), Back.getAngleRotation2d());
-        robotPosition = odometry.updateWithTime(odometryTimer.seconds(), hardware.imuAngle, frontLeftState, frontRightState, backState);
     }
 
     public void resetAllEncoders(){

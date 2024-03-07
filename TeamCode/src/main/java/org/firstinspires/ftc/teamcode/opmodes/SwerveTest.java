@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
 @Photon
+@Disabled
 @TeleOp(name = "swerve 5.0 test", group = "OpMode")
 public class SwerveTest extends OpMode {
 

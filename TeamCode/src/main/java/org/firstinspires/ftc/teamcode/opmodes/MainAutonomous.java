@@ -9,6 +9,7 @@ import com.acmerobotics.roadrunner.followers.HolonomicPIDVAFollower;
 import com.acmerobotics.roadrunner.followers.TrajectoryFollower;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.arcrobotics.ftclib.command.CommandOpMode;
+import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
@@ -36,7 +37,7 @@ public class MainAutonomous extends CommandOpMode {
     public static double translationKp = 0;
     public static double translationKi = 0;
     public static double translationKd = 0;
-    public static double rotationKv = 0.325;
+    public static double rotationKv = 0.305;
     public static double rotationKa = 0.026;
     public static double rotationKp = 1.2;
     public static double rotationKi = 0;
@@ -65,7 +66,7 @@ public class MainAutonomous extends CommandOpMode {
     TrajectoryFollower trajectoryFollower;
     DrivetrainSubsystem swerve;
     RobotHardware hardware;
-    //ArmSubsystem arm;
+    ArmSubsystem arm;
     CalibrationTransfer file;
     TrajectoriesNew trajectories;
 
@@ -79,8 +80,8 @@ public class MainAutonomous extends CommandOpMode {
         hardware.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         file = new CalibrationTransfer(telemetry);
         swerve = new DrivetrainSubsystem(hardware, telemetry, false, true);
-        //arm = new ArmSubsystem(hardware, telemetry, true);
-        trajectories = new TrajectoriesNew(telemetry);
+        arm = new ArmSubsystem(hardware, telemetry, false);
+        trajectories = new TrajectoriesNew(arm, telemetry);
 
         swerve.resetAllEncoders();
         swerve.resetImuOffset();
@@ -109,9 +110,9 @@ public class MainAutonomous extends CommandOpMode {
         telemetry.addLine("ready for start");
         telemetry.update();
 
-//        odPropProcessor.Init(telemetry);
-//        BuildPortal();
-//        odPropProcessor.start();
+        odPropProcessor.Init(telemetry);
+        BuildPortal();
+        odPropProcessor.start();
     }
 
 
@@ -119,16 +120,14 @@ public class MainAutonomous extends CommandOpMode {
     @Override
     public void run() {
         if (!isOpModeStarted){
-//            while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
-//            StopProcessors();
-////            odPropProcessor.stopThread();
-////            if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
-////            else trSequence = trajectories.generateTrajectoryFarFromBackboard(odPropProcessor.getResults(), odPropProcessor.propColor);
-            trSequence = trajectories.buildTwoPixelBackboardAuto(PropDetectionProcessor.POSITION.MIDDLE, PropDetectionProcessor.COLOR.BLUE);
-////
-//            trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+            while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
+            StopProcessors();
+//            odPropProcessor.stopThread();
+//            if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+//            else trSequence = trajectories.generateTrajectoryFarFromBackboard(odPropProcessor.getResults(), odPropProcessor.propColor);
+            if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+            else trSequence = trajectories.buildTwoPixelFarAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
             trajectorySequenceRunner.followTrajectorySequenceAsync(trSequence);
-
             hardware.startIMUThread(this);
             isOpModeStarted = true;
         }
@@ -136,6 +135,7 @@ public class MainAutonomous extends CommandOpMode {
         hardware.clearBulkCache();
         swerve.updateModuleAngles();
         swerve.updateOdometryFromMotorEncoders();
+        CommandScheduler.getInstance().run();
 
         double imuAngle = hardware.imuAngle.getRadians();
         Pose2d robotPosition = new Pose2d(
@@ -164,15 +164,20 @@ public class MainAutonomous extends CommandOpMode {
             swerve.setGamepadInput(correction);
         }
         else swerve.setGamepadInput();
-//        if (isStopRequested() || trajectories.stopOpMode) {
-//            while (!file.hasWrote){
-//                file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
-//            }
-//            sleep(100);
-//            requestOpModeStop();
-//        }
+
+
+        if (isStopRequested() || trajectories.stopOpMode) {
+            while (!file.hasWrote){
+                file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
+            }
+            sleep(100);
+            requestOpModeStop();
+        }
+
+
         swerve.drive();
         telemetry.update();
+
     }
 
     public void BuildPortal(){
@@ -190,7 +195,8 @@ public class MainAutonomous extends CommandOpMode {
 
     public void StopProcessors(){
         portal.setProcessorEnabled(propTFOD, false);
-        portal.close();
+        //portal.close();
+        odPropProcessor.stopThread();
     }
 
     private Pose2d getCorrection (DriveSignal signal) {

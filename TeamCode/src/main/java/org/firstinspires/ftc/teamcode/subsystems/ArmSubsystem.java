@@ -15,43 +15,49 @@ import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 public class ArmSubsystem extends SubsystemBase {
 
     //SLIDES:
-    public static double maxVelocity = 1400;
+    public static double maxVelocity = 2350;
     public static double minVelocity = 350;
     public static double slowDownDistance = 150;
 
-    public static double kP = 0.012;
+    public static double kP = 0.0115;
     public static double kD = 0;
-    public static double kG = 0.013;
+    public static double kG = 0.005;
     public static double lowPassGain = 0.6;
 
     public static double slidePickupPos = 0;
-    public static double slideLowPos = 50;
-    public static double slideMidPos = 650;
-    public static double slideHighPos = 1100;
-    public static double slideErrorMargin = 10;
+    public static double slideLowPos = 120;
+    public static double slideMidPos = 750;
+    public static double slideHighPos = 1380;
+    public static double slideErrorMargin = 7;
 
     //MAIN ARM:
-    public static double axonHighPos = 0.72;
-    public static double axonMidPos = 0.85;
-    public static double axonLowPos = 0.95;
-    public static double axonPickupPos = 0.02;
-    public static double axonTransferPos = 0.15;
+    public static double axonHighPos = 0.75;
+    public static double axonMidPos = 0.83;
+    public static double axonLowPos = 0.88;
+    public static double axonPickupPos = 0;
+    public static double axonTransferPos = 0.03;
+    public static double axonUpperTransferPos = 0.07;
 
     //CLAW ANGLE:
-    public static double clawPickupPos = 0.4;
-    public static double clawLowPosPos = 0.8;
-    public static double clawTransferPos = 0;
-    public static double clawMidPosPosition = 0.7;
-    public static double clawHighPosPosition = 0.6;
+    public static double clawPickupPos = 0.42;
+    public static double clawLowPos = 0.78;
+    public static double clawTransferPos = 0.04;
+    public static double clawMidPos = 0.71;
+    public static double clawHighPos = 0.67;
 
     //CLAW:
-    public static double clawClosedPosition = 1;
-    public static double clawOpenPosition = 0.25;
+    public static double clawClosedPosition = 0;
+    public static double clawOpenPosition = 1;
+
+    public static double clawProximitySensorVoltageThreshold = 1;
 
     double prevSlideTargetPos = 0;
     double prevMotorPos = 0;
     double slideTargetPos = 0;
     double startingPosition = 0;
+
+    boolean isClawLeftLocked = false;
+    boolean isClawRightLocked = false;
 
     RobotHardware robot;
     Telemetry telemetry;
@@ -68,13 +74,34 @@ public class ArmSubsystem extends SubsystemBase {
         this.robot = hardware;
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         this.DEBUG_MODE = DEBUG_MODE;
-        update(CLAW_STATE.BOTH_CLOSED);
         update(CLAW_ANGLE.PICKUP);
         update(AXON_STATE.PICKUP);
         update(SLIDE_STATE.PICKUP);
+        update(CLAW_STATE.BOTH_CLOSED);
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 
+    public void invertClawState(){
+        if (!isClawLeftLocked) {
+            if (robot.clawLeftServo.getPosition() == clawClosedPosition) update(CLAW_STATE.LEFT_OPENED);
+            else update(CLAW_STATE.LEFT_CLOSED);
+        }
+
+        if (!isClawRightLocked) {
+            if (robot.clawRightServo.getPosition() == clawClosedPosition) update(CLAW_STATE.RIGHT_OPEN);
+            else update(CLAW_STATE.RIGHT_CLOSED);
+        }
+    }
+
+    public enum CLAW{
+        LEFT,
+        RIGHT
+    }
+
+    public void changeClawLockState (CLAW claw, boolean locked){
+        if (claw == CLAW.LEFT) isClawLeftLocked = locked;
+        else if (claw == CLAW.RIGHT) isClawRightLocked = locked;
+    }
 
     public void update(CLAW_STATE state) {
         switch (state){
@@ -107,16 +134,16 @@ public class ArmSubsystem extends SubsystemBase {
                 robot.clawAngleServo.setPosition(clawPickupPos);
                 break;
             case LOWPOS:
-                robot.clawAngleServo.setPosition(clawLowPosPos);
+                robot.clawAngleServo.setPosition(clawLowPos);
                 break;
             case TRANSFER:
                 robot.clawAngleServo.setPosition(clawTransferPos);
                 break;
             case MIDPOS:
-                robot.clawAngleServo.setPosition(clawMidPosPosition);
+                robot.clawAngleServo.setPosition(clawMidPos);
                 break;
             case HIGHPOS:
-                robot.clawAngleServo.setPosition(clawHighPosPosition);
+                robot.clawAngleServo.setPosition(clawHighPos);
                 break;
         }
     }
@@ -150,6 +177,11 @@ public class ArmSubsystem extends SubsystemBase {
                 robot.axonRight.setPosition(axonTransferPos);
                 break;
 
+            case UPPER_TRANSFER:
+                robot.axonLeft.setPosition(axonUpperTransferPos);
+                robot.axonRight.setPosition(axonUpperTransferPos);
+                break;
+
             case MIDPOS:
                 robot.axonLeft.setPosition(axonMidPos);
                 robot.axonRight.setPosition(axonMidPos);
@@ -166,7 +198,6 @@ public class ArmSubsystem extends SubsystemBase {
                 break;
         }
     }
-
 
     @Override
     public void periodic() {
@@ -204,10 +235,14 @@ public class ArmSubsystem extends SubsystemBase {
         double power = slidePid.calculate(currentMotorPos, newPosition) + kG;
         robot.SlideMotor.setPower(power);
 
+        telemetry.addData("isLeftLocked", isClawLeftLocked);
+        telemetry.addData("isRightLocked", isClawRightLocked);
+
+
         if (DEBUG_MODE) {
             double armAngleRads = robot.armAxonEncoder.getVoltage() / 1.65d * Math.PI;
-
             telemetry.addData("AxonAngle", Math.toDegrees(armAngleRads));
+
             telemetry.addData("GamepadTargetMotorAngle", slideTargetPos);
             telemetry.addData("actualTargetPos", newPosition);
             telemetry.addData("currentAngle", currentMotorPos);
@@ -225,9 +260,21 @@ public class ArmSubsystem extends SubsystemBase {
                 robot.SlideMotor.getCurrentPosition() < slidePickupPos + slideErrorMargin);
     }
 
-    public boolean areAxonsCloseToTransferPos(){
-        return robot.armAxonEncoder.getVoltage() / 3.3 * 360 > 220;
+    private double getAxonAngleDegrees(){
+        return robot.armAxonEncoder.getVoltage() / 3.3 * 360;
     }
+
+    public boolean areAxonsCloseToTransferPos(){
+        return getAxonAngleDegrees() > 200;
+    }
+
+    public boolean areAxonsAtPickup(){
+        return getAxonAngleDegrees() > 275;
+    }
+
+    public boolean leftPixelInClaw() {return robot.clawProximityLeft.getVoltage() < clawProximitySensorVoltageThreshold;}
+
+    public boolean rightPixelInClaw() {return robot.clawProximityRight.getVoltage() < clawProximitySensorVoltageThreshold;}
 
     public enum SLIDE_STATE{
         PICKUP,
@@ -258,6 +305,7 @@ public class ArmSubsystem extends SubsystemBase {
         LOWPOS,
         MIDPOS,
         TRANSFER,
+        UPPER_TRANSFER,
         HIGHPOS
     }
 }

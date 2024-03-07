@@ -27,6 +27,10 @@ public class DriveForSecondsCommand extends CommandBase {
         this(robot, new Pose2d(driveInput, 0), time);
     }
 
+    @Override
+    public void initialize(){
+        timer.reset();
+    }
 
     @Override
     public void execute(){

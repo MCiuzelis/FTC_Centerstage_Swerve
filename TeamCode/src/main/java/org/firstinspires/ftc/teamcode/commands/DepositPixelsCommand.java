@@ -10,14 +10,14 @@ import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
 public class DepositPixelsCommand extends SequentialCommandGroup {
-    public DepositPixelsCommand(ArmSubsystem arm, DrivetrainSubsystem robot){
+    public DepositPixelsCommand(ArmSubsystem arm, DrivetrainSubsystem robot, double X_AxisDriveSpeed){
 
         addCommands(
                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_OPEN),
-                new WaitCommand(150),
+                new WaitCommand(100),
                 new InstantCommand(()-> arm.offsetLift(-50)),
                 new WaitCommand(50),
-                new DriveForSecondsCommand(robot, new Vector2d(-0.3, 0), 0.4),
+                new DriveForSecondsCommand(robot, new Vector2d(X_AxisDriveSpeed, 0), 0.4),
                 new SetArmToStateCommand(arm, SetArmToStateCommand.ArmState.TRANSFER),
                 new WaitUntilCommand(arm::areAxonsCloseToTransferPos),
                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)

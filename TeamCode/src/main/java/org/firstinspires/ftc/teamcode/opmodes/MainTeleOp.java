@@ -5,6 +5,8 @@ import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLockPosition;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.InstantCommand;
@@ -13,12 +15,9 @@ import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.commands.DepositPixelsCommand;
 import org.firstinspires.ftc.teamcode.commands.SetArmToStateCommand;
-import org.firstinspires.ftc.teamcode.commands.lowLevelCommands.SetClawStateCommand;
 import org.firstinspires.ftc.teamcode.hardware.GamePad;
-import org.firstinspires.ftc.teamcode.hardware.Localizer;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
@@ -34,7 +33,7 @@ public class MainTeleOp extends CommandOpMode {
     CalibrationTransfer file;
     ArmSubsystem armSubsystem;
     GamePad gamePad;
-    Localizer localizer;
+    //Localizer localizer;
 
     double loopTime = 0;
     boolean opModeStarted = false;
@@ -48,7 +47,7 @@ public class MainTeleOp extends CommandOpMode {
         hardware = new RobotHardware(hardwareMap);
         hardware.initialiseHardware(telemetry);
 
-        armSubsystem = new ArmSubsystem(hardware,telemetry,false);
+        armSubsystem = new ArmSubsystem(hardware,telemetry,true);
         file = new CalibrationTransfer(telemetry);
 
 
@@ -58,7 +57,7 @@ public class MainTeleOp extends CommandOpMode {
         telemetry.update();
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        localizer = new Localizer(hardware, telemetry, true);
+        //localizer = new Localizer(hardware, telemetry, true);
         gamePad = new GamePad(gamepad1);
 
 
@@ -73,13 +72,11 @@ public class MainTeleOp extends CommandOpMode {
         gamePad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
                 .whenPressed(()-> schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)));
         gamePad.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
-                .toggleWhenPressed(()-> schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_OPEN)),
-                                   ()-> schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)));
+                .whenPressed(()-> schedule(new InstantCommand(()-> armSubsystem.invertClawState())));
         gamePad.getGamepadButton(GamepadKeys.Button.DPAD_LEFT)
-                        .whenPressed(()-> schedule(new DepositPixelsCommand(armSubsystem, swerve)));
-//        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
-//                .whileHeld(()-> schedule(new InstantCommand(()-> swerve.setModeToMaintainDistance(Math.toRadians(90), 12))))
-//                .whenReleased(()-> schedule(new InstantCommand(()-> swerve.setModeToManual())));
+                        .whenPressed(()-> schedule(new DepositPixelsCommand(armSubsystem, swerve, 0.25)));
+        gamePad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
+                .whenPressed(()-> schedule(new DepositPixelsCommand(armSubsystem, swerve, -0.25)));
         gamePad.getGamepadButton(GamepadKeys.Button.START)
                 .toggleWhenPressed(()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLaunchPosition))),
                                    ()-> schedule(new InstantCommand(()-> hardware.planeServo.setPosition(planeLockPosition))));
@@ -146,8 +143,16 @@ public class MainTeleOp extends CommandOpMode {
         telemetry.addData("imuAngle", hardware.imuAngle.getDegrees());
         //telemetry.addData("robotPosition", localizer.getRobotCentricPosition());
         loopTime = loop;
-
         telemetry.addData("time left: ", 120 - getRuntime());
+
+        swerve.updateChassisSpeedFromEncoders();
+        Vector2d chassisVector = swerve.getRobotXYVelocity();
+        Pose2d robotPosition = swerve.getRobotPosition();
+
+        telemetry.addData("chassis speed X: ", chassisVector.getX());
+        telemetry.addData("chassis speed Y: ", chassisVector.getY());
+        telemetry.addData("position X: ", robotPosition.getX());
+        telemetry.addData("position Y: ", robotPosition.getY());
         telemetry.update();
 
         //if (getRuntime() > 120) requestOpModeStop();

@@ -26,11 +26,11 @@ public class GamePad extends GamepadEx {
 
         double turn = -gamepad.right_stick_x;
 
-        if (gamepad.left_trigger > 0.1) {
+        if (gamepad.right_trigger > 0.1) {
             drive = drive.scale(0.1);
             turn *= 0.35;
         }
-        else if (gamepad.right_trigger < 0.1) {
+        else if (gamepad.left_stick_x < 0.1) {
             drive = drive.scale(0.8);
             turn *= 0.8;
         }

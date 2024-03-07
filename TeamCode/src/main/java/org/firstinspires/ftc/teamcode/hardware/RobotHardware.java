@@ -2,33 +2,22 @@ package org.firstinspires.ftc.teamcode.hardware;
 
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLockPosition;
-
 import androidx.annotation.GuardedBy;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.outoftheboxrobotics.photoncore.hardware.PhotonLynxVoltageSensor;
-import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.hardware.ImuOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.Servo;
-
-import org.firstinspires.ftc.ftccommon.internal.manualcontrol.parameters.ImuParameters;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
 import java.util.List;
 
 @Config
@@ -45,18 +34,16 @@ public class RobotHardware{
     PhotonLynxVoltageSensor voltageSensor;
 
     public Servo clawAngleServo, clawLeftServo, clawRightServo, planeServo, axonLeft, axonRight;
-    public AnalogInput armAxonEncoder;
-
+    public AnalogInput armAxonEncoder, clawProximityLeft, clawProximityRight;
     TrackBallDriver trackBall;
 
 
     private final Object imuLock = new Object();
     @GuardedBy("imuLock")
-//    public RevIMU imu;
     public RevIMU imu;
     public Rotation2d imuAngle = new Rotation2d();
 
-    public DistanceSensor distanceSensor;
+    //public DistanceSensor distanceSensor;
 
     Thread imuThread;
 
@@ -82,12 +69,12 @@ public class RobotHardware{
         BT_Motor = initMotor(hw, "EH_Motor_2", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
         BB_Motor = initMotor(hw, "CH_Motor_0", DcMotorEx.Direction.FORWARD, DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        clawAngleServo = initServo(hw, "EH_Servo_3", Servo.Direction.REVERSE);
-        clawLeftServo = initServo(hw, "EH_Servo_1", Servo.Direction.FORWARD);
-        clawRightServo = initServo(hw, "EH_Servo_2", Servo.Direction.REVERSE);
-        axonLeft = initServo(hw, "EH_Servo_5", Servo.Direction.FORWARD);
-        axonRight = initServo(hw, "EH_Servo_4", Servo.Direction.FORWARD);
-        planeServo = initServo(hw, "EH_Servo_0", Servo.Direction.REVERSE);
+        clawAngleServo = initServo(hw, "EH_Servo_2", Servo.Direction.REVERSE);
+        clawRightServo = initServo(hw, "EH_Servo_1", Servo.Direction.FORWARD);
+        clawLeftServo = initServo(hw, "EH_Servo_0", Servo.Direction.REVERSE);
+        axonLeft = initServo(hw, "EH_Servo_4", Servo.Direction.FORWARD);
+        axonRight = initServo(hw, "EH_Servo_3", Servo.Direction.FORWARD);
+        planeServo = initServo(hw, "CH_Servo_0", Servo.Direction.FORWARD);
 
         planeServo.setPosition(planeLockPosition);
 
@@ -95,9 +82,12 @@ public class RobotHardware{
         frontRightCalibrationSensor = hw.get(DigitalChannel.class,"EH_Digital_1");
         backCalibrationSensor = hw.get(DigitalChannel.class,"CH_Digital_6");
 
-        trackBall = hw.get(TrackBallDriver.class, "trackball");
+        //trackBall = hw.get(TrackBallDriver.class, "trackball");
 
-        //armAxonEncoder = hw.get(AnalogInput.class, "EH_analog");
+        armAxonEncoder = hw.get(AnalogInput.class, "EH_Analog_1");
+        clawProximityLeft = hw.get(AnalogInput.class, "EH_Analog_2");
+        clawProximityRight = hw.get(AnalogInput.class, "EH_Analog_3");
+
 
 
         synchronized (imuLock) {
@@ -107,7 +97,7 @@ public class RobotHardware{
         }
 
 
-        distanceSensor = hw.get(DistanceSensor.class, "distance_sensor");
+        //distanceSensor = hw.get(DistanceSensor.class, "distance_sensor");
     }
 
 
@@ -164,5 +154,10 @@ public class RobotHardware{
         telemetry.addData("calibrationSensorFL", frontLeftCalibrationSensor.getState());
         telemetry.addData("calibrationSensorFR", frontRightCalibrationSensor.getState());
         telemetry.addData("calibrationSensorB", backCalibrationSensor.getState());
+    }
+
+    public void getClawProximitySensorVoltageTelemetry(){
+        telemetry.addData("clawLeftVoltage: ", clawProximityLeft.getVoltage());
+        telemetry.addData("clawRightVoltage: ", clawProximityRight.getVoltage());
     }
 }
