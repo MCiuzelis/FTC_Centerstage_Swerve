@@ -14,13 +14,11 @@ public class DepositPixelsCommand extends SequentialCommandGroup {
 
         addCommands(
                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_OPEN),
-                new WaitCommand(100),
-                new InstantCommand(()-> arm.offsetLift(-50)),
                 new WaitCommand(50),
+                new InstantCommand(()-> arm.offsetLift(-50)),
+                new WaitCommand(30),
                 new DriveForSecondsCommand(robot, new Vector2d(X_AxisDriveSpeed, 0), 0.4),
-                new SetArmToStateCommand(arm, SetArmToStateCommand.ArmState.TRANSFER),
-                new WaitUntilCommand(arm::areAxonsCloseToTransferPos),
-                new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)
+                new SetArmToStateCommand(arm, SetArmToStateCommand.ArmState.TRANSFER)
         );
         addRequirements(arm, robot);
     }

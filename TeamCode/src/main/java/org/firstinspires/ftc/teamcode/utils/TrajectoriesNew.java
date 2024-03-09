@@ -116,7 +116,7 @@ public class TrajectoriesNew {
                 case MIDDLE:
                     return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                            .forward(11)
+                            .forward(10.5)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
                             .waitSeconds(0.5)
                             .back(3.5)
@@ -159,7 +159,7 @@ public class TrajectoriesNew {
                             .back(4)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
-                            .back(16)
+                            .back(15.5)
                             .strafeRight(0.5)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.LEFT_OPENED)))
                             .waitSeconds(0.2)
@@ -187,7 +187,7 @@ public class TrajectoriesNew {
                             .waitSeconds(0.5)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
                             .waitSeconds(1)
-                            .back(5)
+                            .back(4.5)
                             .strafeLeft(4.5)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.LEFT_OPENED)))
                             .waitSeconds(0.2)
@@ -204,7 +204,7 @@ public class TrajectoriesNew {
                 case MIDDLE:
                     return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                            .forward(11)
+                            .forward(10.5)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
                             .waitSeconds(0.5)
                             .back(3.5)
@@ -212,7 +212,7 @@ public class TrajectoriesNew {
                             .turn(Math.toRadians(90))
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
-                            .back(16)
+                            .back(15.5)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.LEFT_OPENED)))
                             .waitSeconds(0.2)
                             .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new InstantCommand(()->armSubsystem.offsetLift(-50))))
@@ -234,89 +234,37 @@ public class TrajectoriesNew {
 
 
     public TrajectorySequence buildTwoPixelFarAuto(PropDetectionProcessor.POSITION position, PropDetectionProcessor.COLOR color) {
-
-
-        if (color == PropDetectionProcessor.COLOR.BLUE) {
-            switch (position) {
-                case RIGHT:
-                    return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                            .forward(13)
-                            .turn(Math.toRadians(-90))
-                            .forward(2.5)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
-                            .waitSeconds(1)
-                            .back(4)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
-                            .addTemporalMarker(() -> stopOpMode = true)
-                            .build();
-
-                case LEFT:
-                    return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                            .forward(13)
-                            .turn(Math.toRadians(90))
-                            .forward(2.5)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
-                            .waitSeconds(1)
-                            .back(4)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
-                            .addTemporalMarker(() -> stopOpMode = true)
-                            .build();
-
-                case MIDDLE:
-                    return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                            .forward(14)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
-                            .waitSeconds(0.5)
-                            .back(3)
-                            .waitSeconds(1)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
-                            .waitSeconds(200)
-                            .addTemporalMarker(() -> stopOpMode = true)
-                            .build();
-                default:
-                    throw new RuntimeException("bad");
-            }
-        }
-
-
-
-
-        //RED
-        else {
-            switch (position) {
-                case LEFT:
-                    return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
+        switch (position) {
+            case RIGHT:
+                return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                        .forward(13)
+                        .forward(9)
                         .turn(Math.toRadians(-90))
-                        .forward(2.5)
+                        .forward(1.5)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
                         .waitSeconds(1)
-                        .back(4)
+                        .back(3)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
                         .addTemporalMarker(() -> stopOpMode = true)
                         .build();
 
-                case RIGHT:
-                    return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
+            case LEFT:
+                return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                        .forward(13)
+                        .forward(9)
                         .turn(Math.toRadians(90))
-                        .forward(2.5)
+                        .forward(1.5)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
                         .waitSeconds(1)
-                        .back(4)
+                        .back(3)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
                         .addTemporalMarker(() -> stopOpMode = true)
                         .build();
 
-                case MIDDLE:
-                    return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
+            case MIDDLE:
+                return new TrajectorySequenceBuilder(new Pose2d(), trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                        .forward(14)
+                        .forward(10.25)
                         .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
                         .waitSeconds(0.5)
                         .back(3)
@@ -325,10 +273,8 @@ public class TrajectoriesNew {
                         .waitSeconds(200)
                         .addTemporalMarker(() -> stopOpMode = true)
                         .build();
-
-                default: return null;
-            }
+            default:
+                throw new RuntimeException("bad");
         }
     }
-
-    }
+}

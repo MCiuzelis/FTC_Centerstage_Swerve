@@ -26,7 +26,7 @@ public class ArmSubsystem extends SubsystemBase {
 
     public static double slidePickupPos = 0;
     public static double slideLowPos = 120;
-    public static double slideMidPos = 750;
+    public static double slideMidPos = 650;
     public static double slideHighPos = 1380;
     public static double slideErrorMargin = 7;
 
@@ -47,9 +47,10 @@ public class ArmSubsystem extends SubsystemBase {
 
     //CLAW:
     public static double clawClosedPosition = 0;
-    public static double clawOpenPosition = 1;
+    public static double clawOpenPosition = 0.75;
 
-    public static double clawProximitySensorVoltageThreshold = 1;
+    public static double clawProximitySensorVoltageThreshold = 1.05;
+    public boolean rumble = false;
 
     double prevSlideTargetPos = 0;
     double prevMotorPos = 0;
@@ -58,6 +59,7 @@ public class ArmSubsystem extends SubsystemBase {
 
     boolean isClawLeftLocked = false;
     boolean isClawRightLocked = false;
+    public boolean isArmUp = false;
 
     RobotHardware robot;
     Telemetry telemetry;
@@ -77,7 +79,6 @@ public class ArmSubsystem extends SubsystemBase {
         update(CLAW_ANGLE.PICKUP);
         update(AXON_STATE.PICKUP);
         update(SLIDE_STATE.PICKUP);
-        update(CLAW_STATE.BOTH_CLOSED);
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 

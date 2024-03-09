@@ -15,6 +15,7 @@ import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.commands.DepositPixelsCommand;
 import org.firstinspires.ftc.teamcode.commands.SetArmToStateCommand;
 import org.firstinspires.ftc.teamcode.hardware.GamePad;
@@ -33,12 +34,9 @@ public class MainTeleOp extends CommandOpMode {
     CalibrationTransfer file;
     ArmSubsystem armSubsystem;
     GamePad gamePad;
-    //Localizer localizer;
 
     double loopTime = 0;
     boolean opModeStarted = false;
-
-
 
 
     @Override
@@ -124,24 +122,29 @@ public class MainTeleOp extends CommandOpMode {
             hardware.startIMUThread(this);
             opModeStarted = true;
         }
+        if (gamepad1.share) swerve.resetImuOffset();
 
-        if (gamepad1.share){
-            swerve.resetImuOffset();
-        }
 
         hardware.clearBulkCache();
         swerve.updateModuleAngles();
 
-        //localizer.updateOdometry();
-        swerve.setGamepadInput(gamePad.getGamepadInput());
+        double driveScalar = armSubsystem.isArmUp ? 0.25 : 1;
+
+        swerve.setGamepadInput(gamePad.getGamepadInput(driveScalar));
         CommandScheduler.getInstance().run();
         swerve.drive();
 
 
+        if (armSubsystem.rumble){
+            gamepad1.rumble(250);
+            //telemetry.speak("Matas is pretty monkey");
+            armSubsystem.rumble = false;
+        }
+
         double loop = System.nanoTime();
+        telemetry.addData("rumble: ", armSubsystem.rumble);
         telemetry.addData("Loop time ms",  (loop - loopTime) / 1000000);
         telemetry.addData("imuAngle", hardware.imuAngle.getDegrees());
-        //telemetry.addData("robotPosition", localizer.getRobotCentricPosition());
         loopTime = loop;
         telemetry.addData("time left: ", 120 - getRuntime());
 
@@ -155,7 +158,13 @@ public class MainTeleOp extends CommandOpMode {
         telemetry.addData("position Y: ", robotPosition.getY());
         telemetry.update();
 
-        //if (getRuntime() > 120) requestOpModeStop();
-        if (isStopRequested()) while (!file.hasWrote) file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
+
+//        if (getRuntime() > 121){
+//            CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.TRANSFER));
+//            CommandScheduler.getInstance().run();
+//            while (!file.hasWrote) file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
+//            sleep(100);
+//            requestOpModeStop();
+//        }
     }
 }

@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.hardware;
-import static org.firstinspires.ftc.teamcode.hardware.Globals.areSlidesUp;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
@@ -13,7 +12,7 @@ public class GamePad extends GamepadEx {
     }
 
 
-    public Pose2d getGamepadInput(){
+    public Pose2d getGamepadInput(double driveScalar, double turnScalar){
         double left_stick_x = rootInput(gamepad.left_stick_x);
         double left_stick_y = rootInput(gamepad.left_stick_y);
         Vector2d drive = new Vector2d(left_stick_x, left_stick_y);
@@ -35,12 +34,18 @@ public class GamePad extends GamepadEx {
             turn *= 0.8;
         }
 
-        if (areSlidesUp){
-            drive = drive.scale(0.5);
-            turn *= 0.8;
-        }
-
+        drive = drive.scale(driveScalar);
+        turn *= turnScalar;
         return new Pose2d(drive.getX(), drive.getY(), turn);
+    }
+
+
+    public Pose2d getGamepadInput(){
+        return getGamepadInput(1, 1);
+    }
+
+    public Pose2d getGamepadInput(double driveScalar){
+        return getGamepadInput(driveScalar, 1);
     }
 
 

@@ -175,7 +175,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
                 new SwerveModuleState(FrontRight.getDrivingVelocity(), FrontRight.getAngleRotation2d());
         SwerveModuleState backState =
                 new SwerveModuleState(Back.getDrivingVelocity(), Back.getAngleRotation2d());
-
         chassisSpeeds = kinematics.toChassisSpeeds(frontLeftState, frontRightState, backState);
     }
 
@@ -191,6 +190,16 @@ public class DrivetrainSubsystem extends SubsystemBase {
         SwerveModuleState backState =
                 new SwerveModuleState(Back.getDrivingVelocity(), Back.getAngleRotation2d());
         robotPosition = odometry.updateWithTime(odometryTimer.seconds(), hardware.imuAngle, frontLeftState, frontRightState, backState);
+    }
+
+    public void updateOdometryNew(){
+        ChassisSpeeds speed = kinematics.toChassisSpeeds(FrontLeft.positionModuleState(),
+                                                         FrontRight.positionModuleState(),
+                                                         Back.positionModuleState());
+
+        robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d(robotPosition.getX() + speed.vyMetersPerSecond,
+                                                                   robotPosition.getY() - speed.vxMetersPerSecond,
+                                                                      hardware.imuAngle);
     }
 
     public com.acmerobotics.roadrunner.geometry.Vector2d getRobotXYVelocity(){

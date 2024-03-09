@@ -8,9 +8,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.DrivetrainSubsystem;
 
-//@Disabled
 @Photon
-@TeleOp(name = "GoofyDriveBaseCalibrationTesting", group = "OpMode")
+@TeleOp(name = "DriveBaseCalibration", group = "OpMode")
 public class DriveBaseCalibration extends LinearOpMode {
     DrivetrainSubsystem drivetrainSubsystem;
     RobotHardware robot;

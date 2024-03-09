@@ -6,6 +6,4 @@ import com.acmerobotics.dashboard.config.Config;
 public class Globals {
     public static double planeLockPosition = 0;
     public static double planeLaunchPosition = 0.2;
-
-    public static boolean areSlidesUp = false;
 }

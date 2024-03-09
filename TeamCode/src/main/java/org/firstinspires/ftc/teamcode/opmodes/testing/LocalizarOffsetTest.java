@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.testing;
 
 import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLaunchPosition;
 import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLockPosition;

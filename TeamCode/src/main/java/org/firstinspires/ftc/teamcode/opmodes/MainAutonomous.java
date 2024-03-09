@@ -120,6 +120,7 @@ public class MainAutonomous extends CommandOpMode {
     @Override
     public void run() {
         if (!isOpModeStarted){
+            arm.update(ArmSubsystem.CLAW_STATE.BOTH_CLOSED);
             while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
             StopProcessors();
 //            odPropProcessor.stopThread();
@@ -134,6 +135,7 @@ public class MainAutonomous extends CommandOpMode {
 
         hardware.clearBulkCache();
         swerve.updateModuleAngles();
+        swerve.updateChassisSpeedFromEncoders();
         swerve.updateOdometryFromMotorEncoders();
         CommandScheduler.getInstance().run();
 
@@ -166,18 +168,15 @@ public class MainAutonomous extends CommandOpMode {
         else swerve.setGamepadInput();
 
 
-        if (isStopRequested() || trajectories.stopOpMode) {
+        if (trajectories.stopOpMode) requestOpModeStop();
+        if (isStopRequested()) {
             while (!file.hasWrote){
                 file.PushCalibrationData(hardware.imuAngle.getRadians(), swerve.getAllModuleAngleRads());
             }
-            sleep(100);
-            requestOpModeStop();
         }
-
 
         swerve.drive();
         telemetry.update();
-
     }
 
     public void BuildPortal(){

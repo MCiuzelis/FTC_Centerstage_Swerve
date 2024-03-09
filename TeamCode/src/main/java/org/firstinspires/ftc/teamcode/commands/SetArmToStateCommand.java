@@ -40,8 +40,9 @@ public class SetArmToStateCommand extends CommandBase {
             case PICKUP:
                 CommandScheduler.getInstance().schedule(
                         new SequentialCommandGroup(
+                                new InstantCommand(()-> arm.isArmUp = false),
 
-                            new ConditionalCommand(
+                                new ConditionalCommand(
                                     new SequentialCommandGroup(
                                         new SetSlideHeightCommand(arm, ArmSubsystem.SLIDE_STATE.PICKUP),
                                         new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.PICKUP),
@@ -84,9 +85,7 @@ public class SetArmToStateCommand extends CommandBase {
                                     )
                             ),
 
-
-                            new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.LEFT, false)),
-                            new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.RIGHT, false)),
+                            new InstantCommand(()-> arm.rumble = true),
                             new SetArmToStateCommand(arm, ArmState.TRANSFER)
                         )
                 );
@@ -95,6 +94,11 @@ public class SetArmToStateCommand extends CommandBase {
             case TRANSFER:
                 CommandScheduler.getInstance().schedule(
                         new SequentialCommandGroup(
+                            new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.LEFT, false)),
+                            new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.RIGHT, false)),
+                            new InstantCommand(()-> arm.isArmUp = false),
+
+
                             new ConditionalCommand(
                                 new SequentialCommandGroup(
                                     new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_OPEN),
@@ -113,12 +117,16 @@ public class SetArmToStateCommand extends CommandBase {
                             new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.TRANSFER),
                             new WaitUntilCommand(arm::areAxonsCloseToTransferPos),
                             new SetSlideHeightCommand(arm, ArmSubsystem.SLIDE_STATE.PICKUP)
-                        ));
+                        )
+                );
                 break;
 
             case LOW:
                 CommandScheduler.getInstance().schedule(
                         new SequentialCommandGroup(
+                                new InstantCommand(()-> arm.isArmUp = true),
+                                new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.LEFT, false)),
+                                new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.RIGHT, false)),
                                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_CLOSED),
                                 new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.LOWPOS),
                                 new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.LOWPOS),
@@ -129,6 +137,9 @@ public class SetArmToStateCommand extends CommandBase {
             case MID:
                 CommandScheduler.getInstance().schedule(
                         new SequentialCommandGroup(
+                                new InstantCommand(()-> arm.isArmUp = true),
+                                new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.LEFT, false)),
+                                new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.RIGHT, false)),
                                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_CLOSED),
                                 new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.MIDPOS),
                                 new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.MIDPOS),
@@ -139,10 +150,13 @@ public class SetArmToStateCommand extends CommandBase {
             case HIGH:
                 CommandScheduler.getInstance().schedule(
                         new SequentialCommandGroup(
+                                new InstantCommand(()-> arm.isArmUp = true),
+                                new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.LEFT, false)),
+                                new InstantCommand(()-> arm.changeClawLockState(ArmSubsystem.CLAW.RIGHT, false)),
                                 new SetClawStateCommand(arm, ArmSubsystem.CLAW_STATE.BOTH_CLOSED),
-                                        new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.HIGHPOS),
-                                        new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.HIGHPOS),
-                                        new SetSlideHeightCommand(arm, ArmSubsystem.SLIDE_STATE.HIGH)
+                                new SetAxonAngleCommand(arm, ArmSubsystem.AXON_STATE.HIGHPOS),
+                                new SetClawAngleCommand(arm, ArmSubsystem.CLAW_ANGLE.HIGHPOS),
+                                new SetSlideHeightCommand(arm, ArmSubsystem.SLIDE_STATE.HIGH)
                         ));
                 break;
         }

@@ -8,6 +8,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
+import com.arcrobotics.ftclib.kinematics.wpilibkinematics.SwerveModuleState;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 
@@ -32,6 +33,7 @@ public class SwerveModule implements Runnable{
     public static double maxAcceleration = 420;
 
     double prevVelocity = 0;
+    double prevPosition = 0;
 
     PIDController turnPID;
     Telemetry telemetry;
@@ -131,6 +133,21 @@ public class SwerveModule implements Runnable{
         moduleCalibrated = true;
     }
 
+    public SwerveModuleState positionModuleState(){
+        double currentPosition = getDrivenPosition();
+        double positionDelta = getDrivenPosition() - prevPosition;
+        prevPosition = currentPosition;
+
+        double angle = getAngleRads();
+
+        if (positionDelta < 0){
+            positionDelta = Math.abs(positionDelta);
+            angle += Math.PI;
+            while (Math.abs(angle) > 2d * Math.PI) angle -= Math.signum(angle) * 2d * Math.PI;
+        }
+        return new SwerveModuleState(positionDelta, new Rotation2d(angle));
+    }
+
     public double getAngleTicks() {return (TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / 2d;}
 
     public void updateAngle() {currentAngleRads = getAngleTicks() / ticksInOneRad;}
@@ -146,6 +163,8 @@ public class SwerveModule implements Runnable{
     public Rotation2d getAngleRotation2d() {return new Rotation2d(currentAngleRads);}
 
     public double getDrivingVelocity() {return (TopMotor.getVelocity() - BottomMotor.getVelocity()) / 2d;}
+
+    public double getDrivenPosition() {return (TopMotor.getCurrentPosition() - BottomMotor.getCurrentPosition()) / 2d;}
 
     public void setModuleVelocity(double velocity) {
         TopMotor.setVelocity(velocity);
