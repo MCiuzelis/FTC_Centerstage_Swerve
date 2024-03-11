@@ -16,6 +16,7 @@ import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArmSubsystem;
@@ -24,18 +25,18 @@ import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.Traj
 import org.firstinspires.ftc.teamcode.testing.roadRunner.trajectorysequence.TrajectorySequenceRunner;
 import org.firstinspires.ftc.teamcode.utils.CalibrationTransfer;
 import org.firstinspires.ftc.teamcode.utils.PropDetectionProcessor;
-import org.firstinspires.ftc.teamcode.utils.TrajectoriesNew;
+import org.firstinspires.ftc.teamcode.utils.TrajectoriesNewNew;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 @Photon
 @Config
-@Autonomous(name = "😈")
+@Autonomous(name = "😈(NEW)")
 
-public class MainAutonomous extends CommandOpMode {
+public class MainAutonomousNEW extends CommandOpMode {
     public static double translationKv = 0.039;
     public static double translationKa = 0.006;
-    public static double translationKp = 0;
+    public static double translationKp = 0.125;
     public static double translationKi = 0;
     public static double translationKd = 0;
     public static double rotationKv = 0.305;
@@ -55,6 +56,9 @@ public class MainAutonomous extends CommandOpMode {
     ElapsedTime headingTimer = new ElapsedTime();
     double prevTime = 0;
     double prevHeading = 0;
+    
+    LowPassFilter XVelocityFilter = new LowPassFilter(0.75);
+    LowPassFilter YVelocityFilter = new LowPassFilter(0.75);
 
 
     VisionPortal.Builder portalBuilder;
@@ -69,7 +73,7 @@ public class MainAutonomous extends CommandOpMode {
     RobotHardware hardware;
     ArmSubsystem arm;
     CalibrationTransfer file;
-    TrajectoriesNew trajectories;
+    TrajectoriesNewNew trajectories;
 
 
 
@@ -82,7 +86,7 @@ public class MainAutonomous extends CommandOpMode {
         file = new CalibrationTransfer(telemetry);
         swerve = new DrivetrainSubsystem(hardware, telemetry, false, true);
         arm = new ArmSubsystem(hardware, telemetry, false);
-        trajectories = new TrajectoriesNew(arm, telemetry);
+        trajectories = new TrajectoriesNewNew(arm, telemetry);
 
         swerve.resetAllEncoders();
         swerve.resetImuOffset();
@@ -136,10 +140,10 @@ public class MainAutonomous extends CommandOpMode {
 
         hardware.clearBulkCache();
         swerve.updateModuleAngles();
-
-        swerve.updateChassisSpeedFromEncoders();
-        swerve.updateOdometryFromMotorEncoders();
-
+        
+        swerve.updateChassisSpeedNew();
+        swerve.updateOdometryNew();
+        
         CommandScheduler.getInstance().run();
 
         double imuAngle = hardware.imuAngle.getRadians();
@@ -152,8 +156,8 @@ public class MainAutonomous extends CommandOpMode {
         ChassisSpeeds robotVelocity = swerve.getChassisSpeedFromEncoders();
 
         Pose2d currentRobotVelocity = new Pose2d(
-                robotVelocity.vyMetersPerSecond / odometryTickToInchRatio,
-                -robotVelocity.vxMetersPerSecond / odometryTickToInchRatio,
+                XVelocityFilter.estimate(robotVelocity.vyMetersPerSecond) / odometryTickToInchRatio,
+                -YVelocityFilter.estimate(robotVelocity.vxMetersPerSecond) / odometryTickToInchRatio,
                 robotVel);
 
         DriveSignal impulse = trajectorySequenceRunner.update(robotPosition, currentRobotVelocity);

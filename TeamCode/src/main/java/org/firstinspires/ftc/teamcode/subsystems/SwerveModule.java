@@ -28,12 +28,13 @@ public class SwerveModule implements Runnable{
     public static double turnKi = 0.0005;
     public static double turnKd = 0.0003;
     public static double turnPowerCap = 0.45;
-    public static double driveKp = 0.00015;
+    public static double driveKp = 0.0007;
     public static double driveKv = 0.00051;
     public static double maxAcceleration = 420;
 
     double prevVelocity = 0;
     double prevPosition = 0;
+    double inverter;
 
     PIDController turnPID;
     Telemetry telemetry;
@@ -47,14 +48,19 @@ public class SwerveModule implements Runnable{
     public boolean moduleCalibrated = false;
 
 
-    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, DigitalChannel calibrationSensor, boolean DEBUG_MODE, Telemetry telemetry) {
+    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, DigitalChannel calibrationSensor, boolean DEBUG_MODE, double inverter, Telemetry telemetry) {
         this.TopMotor = TopMotor;
         this.BottomMotor = BottomMotor;
         this.calibrationSensor = calibrationSensor;
         this.DEBUG_MODE = DEBUG_MODE;
+        this.inverter = inverter;
         this.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         turnPID = new PIDController(turnKp, turnKi, turnKd);
+    }
+
+    public SwerveModule(DcMotorEx TopMotor, DcMotorEx BottomMotor, DigitalChannel calibrationSensor, boolean DEBUG_MODE, Telemetry telemetry) {
+        this(TopMotor, BottomMotor, calibrationSensor, DEBUG_MODE, 1, telemetry);
     }
 
     public double getTurnCorrection(double targetAngle) {
@@ -63,12 +69,10 @@ public class SwerveModule implements Runnable{
         double adjustedTargetAngle = targetAngle;
         double error = adjustedTargetAngle - currentAngle;
 
-
         if (Math.abs(error) > Math.PI){
             adjustedTargetAngle -= Math.signum(error) * 2d * Math.PI;
             error = adjustedTargetAngle - currentAngle;
         }
-
 
         if (Math.abs(error) > Math.toRadians(95)) {
             adjustedTargetAngle -= Math.signum(error) * Math.PI;
@@ -87,20 +91,22 @@ public class SwerveModule implements Runnable{
 
     public double getDriveCorrection(double targetVelocity) {
         targetVelocity *= driveSpeedMultiplier;
+        double currentVelocity = getDrivingVelocity();
 
         if (DEBUG_MODE) {
             telemetry.addData("targetVelocity", targetVelocity);
-            telemetry.addData("currentVelocity", getDrivingVelocity());
+            telemetry.addData("currentVelocity", currentVelocity);
+            telemetry.addData("pid correction", driveKp * (targetVelocity - currentVelocity));
+            telemetry.addData("kv correction", driveKv * targetVelocity);
         }
 
         double velocityError = targetVelocity - prevVelocity;
-        if (velocityError > maxAcceleration){
+        if (Math.abs(velocityError) > maxAcceleration){
             targetVelocity = prevVelocity + maxAcceleration * Math.signum(velocityError);
         }
         prevVelocity = targetVelocity;
 
-        double output = driveKv * targetVelocity + driveKp * (targetVelocity - getDrivingVelocity());
-        telemetry.addData("output", output);
+        double output = driveKv * targetVelocity + driveKp * (targetVelocity - currentVelocity);
         return clamp(output, -1, 1);
     }
 
@@ -135,17 +141,66 @@ public class SwerveModule implements Runnable{
 
     public SwerveModuleState positionModuleState(){
         double currentPosition = getDrivenPosition();
-        double positionDelta = getDrivenPosition() - prevPosition;
+        double positionDelta = currentPosition - prevPosition;
         prevPosition = currentPosition;
 
         double angle = getAngleRads();
 
         if (positionDelta < 0){
-            positionDelta = Math.abs(positionDelta);
-            angle += Math.PI;
+            positionDelta = -positionDelta;
+
+            if (angle > 0) angle -= Math.PI;
+            else angle += Math.PI;
             while (Math.abs(angle) > 2d * Math.PI) angle -= Math.signum(angle) * 2d * Math.PI;
         }
+
+        telemetry.addData("module angle: ", Math.toDegrees(angle));
+        telemetry.addData("module magnitude: ", positionDelta);
         return new SwerveModuleState(positionDelta, new Rotation2d(angle));
+    }
+
+    public SwerveModuleState positionModuleStateVECTOR(){
+        double currentPosition = getDrivenPosition();
+        double positionDelta = currentPosition - prevPosition;
+        prevPosition = currentPosition;
+
+        double angle = getAngleRads();
+        Vector2d vector = new Vector2d(Math.sin(angle) * positionDelta, Math.cos(angle) * positionDelta);
+        double magnitude = vector. magnitude();
+
+        telemetry.addData("module angle: ", Math.toDegrees(angle));
+        telemetry.addData("module magnitude: ", magnitude);
+
+        return new SwerveModuleState(magnitude, new Rotation2d(vector.angle()));
+    }
+
+    public SwerveModuleState velocityModuleState(){
+        double currentVelocity = getDrivingVelocity();
+        double angle = getAngleRads();
+
+        if (currentVelocity < 0){
+            currentVelocity = -currentVelocity;
+
+            if (angle > 0) angle -= Math.PI;
+            else angle += Math.PI;
+            while (Math.abs(angle) > 2d * Math.PI) angle -= Math.signum(angle) * 2d * Math.PI;
+        }
+
+        telemetry.addData("module angle: ", Math.toDegrees(angle));
+        telemetry.addData("module velocity: ", currentVelocity);
+        return new SwerveModuleState(currentVelocity, new Rotation2d(angle));
+    }
+
+    public SwerveModuleState velocityModuleStateVECTOR(){
+        double currentVelocity = getDrivingVelocity();
+        double angle = getAngleRads();
+
+        Vector2d vector = new Vector2d(Math.sin(angle) * currentVelocity, Math.cos(angle) * currentVelocity);
+        double magnitude = vector.magnitude();
+
+        telemetry.addData("module angle: ", Math.toDegrees(angle));
+        telemetry.addData("module velocity: ", magnitude);
+        return new SwerveModuleState(magnitude, new Rotation2d(vector.angle()));
     }
 
     public double getAngleTicks() {return (TopMotor.getCurrentPosition() + BottomMotor.getCurrentPosition()) / 2d;}
@@ -162,7 +217,7 @@ public class SwerveModule implements Runnable{
 
     public Rotation2d getAngleRotation2d() {return new Rotation2d(currentAngleRads);}
 
-    public double getDrivingVelocity() {return (TopMotor.getVelocity() - BottomMotor.getVelocity()) / 2d;}
+    public double getDrivingVelocity() {return (TopMotor.getVelocity() - BottomMotor.getVelocity()) / 2d * inverter;}
 
     public double getDrivenPosition() {return (TopMotor.getCurrentPosition() - BottomMotor.getCurrentPosition()) / 2d;}
 

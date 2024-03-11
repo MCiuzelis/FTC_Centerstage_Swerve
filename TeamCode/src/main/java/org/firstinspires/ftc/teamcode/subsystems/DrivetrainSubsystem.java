@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.ThermalEquilibrium.homeostasis.Filters.FilterAlgorithms.LowPassFilter;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -33,7 +34,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Translation2d frontRightLocation = new Translation2d(0.0750555, -0.13);
     Translation2d backLocation = new Translation2d(-0.15111, 0);
 
-
     boolean DEBUG_MODE;
     boolean isAutonomous;
     RobotHardware hardware;
@@ -58,7 +58,10 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Pose2d currentPos = new Pose2d();
 
     Rotation2d imuOffset;
-    ChassisSpeeds chassisSpeeds;
+    public ChassisSpeeds chassisSpeeds;
+
+    LowPassFilter XVelocityFilter = new LowPassFilter(0.75);
+    LowPassFilter YVelocityFilter = new LowPassFilter(0.75);
 
 
 
@@ -70,7 +73,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
         FrontLeft = new SwerveModule(robot.FLT_Motor, robot.FLB_Motor, robot.frontLeftCalibrationSensor, DEBUG_MODE, telemetry);
         FrontRight = new SwerveModule(robot.FRT_Motor, robot.FRB_Motor, robot.frontRightCalibrationSensor, DEBUG_MODE, telemetry);
-        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.backCalibrationSensor, DEBUG_MODE, telemetry);
+        Back = new SwerveModule(robot.BT_Motor, robot.BB_Motor, robot.backCalibrationSensor, DEBUG_MODE, -1, telemetry);
 
         this.imuOffset = new Rotation2d(imuOffsetRads);
         kinematics = new SwerveDriveKinematics(frontLeftLocation, frontRightLocation, backLocation);
@@ -178,6 +181,13 @@ public class DrivetrainSubsystem extends SubsystemBase {
         chassisSpeeds = kinematics.toChassisSpeeds(frontLeftState, frontRightState, backState);
     }
 
+    public void updateChassisSpeedNew(){
+        chassisSpeeds = kinematics.toChassisSpeeds(FrontLeft.velocityModuleStateVECTOR(),
+                                                   FrontRight.velocityModuleStateVECTOR(),
+                                                   Back.velocityModuleStateVECTOR()
+        );
+    }
+
     public ChassisSpeeds getChassisSpeedFromEncoders(){
         return chassisSpeeds;
     }
@@ -197,8 +207,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
                                                          FrontRight.positionModuleState(),
                                                          Back.positionModuleState());
 
-        robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d(robotPosition.getX() + speed.vyMetersPerSecond,
-                                                                   robotPosition.getY() - speed.vxMetersPerSecond,
+        robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d(robotPosition.getX() + XVelocityFilter.estimate(speed.vyMetersPerSecond),
+                                                                   robotPosition.getY() - YVelocityFilter.estimate(speed.vxMetersPerSecond),
                                                                       hardware.imuAngle);
     }
 
@@ -229,10 +239,17 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
     public SwerveModuleState[] translateChassisSpeedToModuleStates(Pose2d driveInput, Rotation2d imuAngle){
-        double voltageMultiplier = hardware.getVoltageDriveMultiplier();
-        double vxPower = driveInput.getY() * highestPossibleMotorVelocity * voltageMultiplier;
-        double vyPower = driveInput.getX() * highestPossibleMotorVelocity * voltageMultiplier;
-        double turnPower = getTurnPower(driveInput.getHeading(), imuAngle.getRadians(), driveInput) * voltageMultiplier;
+        double vxPower = driveInput.getY() * highestPossibleMotorVelocity;
+        double vyPower = driveInput.getX() * highestPossibleMotorVelocity;
+        double turnPower = getTurnPower(driveInput.getHeading(), imuAngle.getRadians(), driveInput);
+
+
+        if (!isAutonomous){
+            double voltageMultiplier = hardware.getVoltageDriveMultiplier();
+            vxPower *= voltageMultiplier;
+            vyPower *= voltageMultiplier;
+            turnPower *= voltageMultiplier;
+        }
 
         if (isAutonomous) return kinematics.toSwerveModuleStates(new ChassisSpeeds(vxPower, vyPower, driveInput.getHeading() * K_rotation));
         else return kinematics.toSwerveModuleStates(ChassisSpeeds.fromFieldRelativeSpeeds(vxPower, vyPower, turnPower, imuAngle));

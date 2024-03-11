@@ -236,12 +236,10 @@ public class ArmSubsystem extends SubsystemBase {
         double power = slidePid.calculate(currentMotorPos, newPosition) + kG;
         robot.SlideMotor.setPower(power);
 
-        telemetry.addData("isLeftLocked", isClawLeftLocked);
-        telemetry.addData("isRightLocked", isClawRightLocked);
-
-
         if (DEBUG_MODE) {
             double armAngleRads = robot.armAxonEncoder.getVoltage() / 1.65d * Math.PI;
+            telemetry.addData("isLeftLocked", isClawLeftLocked);
+            telemetry.addData("isRightLocked", isClawRightLocked);
             telemetry.addData("AxonAngle", Math.toDegrees(armAngleRads));
 
             telemetry.addData("GamepadTargetMotorAngle", slideTargetPos);
