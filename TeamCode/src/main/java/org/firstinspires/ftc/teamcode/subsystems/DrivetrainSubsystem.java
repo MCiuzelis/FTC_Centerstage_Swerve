@@ -30,6 +30,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
     public static double angleHoldingKp = 10000;
     public static double turnDelay = 0.5;
 
+    private double odometryTickToInchRatio =  ((((1+(46d/17d))) * (1+(46d/17))) * 28) / ((33d / 62 * 52 / 18) * 2 * Math.PI * 1.5d);
+
+
     Translation2d frontLeftLocation = new Translation2d(0.0750555, 0.13);
     Translation2d frontRightLocation = new Translation2d(0.0750555, -0.13);
     Translation2d backLocation = new Translation2d(-0.15111, 0);
@@ -60,8 +63,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Rotation2d imuOffset;
     public ChassisSpeeds chassisSpeeds;
 
-    LowPassFilter XVelocityFilter = new LowPassFilter(0.75);
-    LowPassFilter YVelocityFilter = new LowPassFilter(0.75);
+    LowPassFilter XVelocityFilter = new LowPassFilter(0.92);
+    LowPassFilter YVelocityFilter = new LowPassFilter(0.92);
 
 
 
@@ -203,9 +206,22 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
     public void updateOdometryNew(){
-        ChassisSpeeds speed = kinematics.toChassisSpeeds(FrontLeft.positionModuleState(),
-                                                         FrontRight.positionModuleState(),
-                                                         Back.positionModuleState());
+        SwerveModuleState FL = FrontLeft.positionModuleStateVECTOR();
+        SwerveModuleState FR = FrontRight.positionModuleStateVECTOR();
+        SwerveModuleState B = Back.positionModuleStateVECTOR();
+
+
+        ChassisSpeeds speed = kinematics.toChassisSpeeds(FL,
+                                                         FR,
+                                                         B);
+
+        telemetry.addData("FL angle ", FL.angle);
+        telemetry.addData("FL speed ", FL.speedMetersPerSecond);
+        telemetry.addData("FR angle ", FR.angle);
+        telemetry.addData("FR speed ", FR.speedMetersPerSecond);
+        telemetry.addData("B angle ", B.angle);
+        telemetry.addData("B speed ", B.speedMetersPerSecond);
+
 
         robotPosition = new com.arcrobotics.ftclib.geometry.Pose2d(robotPosition.getX() + XVelocityFilter.estimate(speed.vyMetersPerSecond),
                                                                    robotPosition.getY() - YVelocityFilter.estimate(speed.vxMetersPerSecond),
@@ -221,8 +237,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
         double dt = currentTime - prevOdometryTime;
         prevOdometryTime = currentTime;
 
-        currentPos = new Pose2d(currentPos.getX() + chassisSpeeds.vxMetersPerSecond * dt,
-                                currentPos.getY() + chassisSpeeds.vyMetersPerSecond * dt,
+        currentPos = new Pose2d(currentPos.getX() + chassisSpeeds.vyMetersPerSecond * dt / odometryTickToInchRatio,
+                                currentPos.getY() - chassisSpeeds.vxMetersPerSecond * dt / odometryTickToInchRatio,
                                    hardware.imuAngle.getRadians());
         return currentPos;
     }

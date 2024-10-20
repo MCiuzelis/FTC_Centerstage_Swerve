@@ -20,6 +20,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.util.List;
+import com.qualcomm.robotcore.util.Range;
+import com.roboctopi.cuttlefishftcbridge.devices.CuttleRevHub;
 
 @Config
 public class RobotHardware{
@@ -43,8 +45,6 @@ public class RobotHardware{
     @GuardedBy("imuLock")
     public RevIMU imu;
     public Rotation2d imuAngle = new Rotation2d();
-
-    //public DistanceSensor distanceSensor;
 
     Thread imuThread;
 

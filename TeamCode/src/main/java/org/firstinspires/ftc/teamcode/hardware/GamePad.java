@@ -18,7 +18,8 @@ public class GamePad extends GamepadEx {
         Vector2d drive = new Vector2d(left_stick_x, left_stick_y);
 
         double PositiveDriveAngle = Math.abs(drive.angle());
-        double maximumNotScaledDownSpeedInARectangularContour = (PositiveDriveAngle >= Math.toRadians(45) && PositiveDriveAngle <= Math.toRadians(135)) ? Math.hypot(left_stick_x, 1) : Math.hypot(left_stick_y, 1);
+        double maximumNotScaledDownSpeedInARectangularContour = (PositiveDriveAngle >= Math.toRadians(45)
+                && PositiveDriveAngle <= Math.toRadians(135)) ? Math.hypot(left_stick_x, 1) : Math.hypot(left_stick_y, 1);
 
         drive = drive.div(maximumNotScaledDownSpeedInARectangularContour);
         drive = drive.scale(drive.magnitude());

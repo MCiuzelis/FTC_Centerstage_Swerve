@@ -3,14 +3,15 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLaunchPosition;
 import static org.firstinspires.ftc.teamcode.hardware.Globals.planeLockPosition;
 
+import com.ThermalEquilibrium.homeostasis.Filters.FilterAlgorithms.LowPassFilter;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.InstantCommand;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
-import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.outoftheboxrobotics.photoncore.Photon;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -34,6 +35,10 @@ public class MainTeleOp extends CommandOpMode {
     CalibrationTransfer file;
     ArmSubsystem armSubsystem;
     GamePad gamePad;
+
+    LowPassFilter XVelocityFilter = new LowPassFilter(0.9);
+    LowPassFilter YVelocityFilter = new LowPassFilter(0.9);
+
 
     double loopTime = 0;
     boolean opModeStarted = false;
@@ -142,24 +147,16 @@ public class MainTeleOp extends CommandOpMode {
 
         double loop = System.nanoTime();
         telemetry.addData("Loop time ms",  (loop - loopTime) / 1000000);
-        telemetry.addData("imuAngle", hardware.imuAngle.getDegrees());
         loopTime = loop;
 
-//        swerve.updateChassisSpeedFromEncoders();
-//        Vector2d chassisVector = swerve.getRobotXYVelocity();
-//        Pose2d robotPosition = swerve.getRobotPosition();
-//
 
+        swerve.updateChassisSpeedNew();
+        Pose2d pose = swerve.getRobotPosition();
 
-
-//        swerve.updateOdometryNew();
-//        swerve.updateChassisSpeedNew();
-//
-//        telemetry.addData("chassis speed X: ", swerve.chassisSpeeds.vyMetersPerSecond);
-//        telemetry.addData("chassis speed Y: ", -swerve.chassisSpeeds.vxMetersPerSecond);
-//        telemetry.addData("position X: ", swerve.robotPosition.getX());
-//        telemetry.addData("position Y: ", swerve.robotPosition.getY());
-//        telemetry.addData("position theta", Math.toDegrees(swerve.robotPosition.getHeading()));
+        telemetry.addData("chassis speed X: ", swerve.chassisSpeeds.vyMetersPerSecond);
+        telemetry.addData("chassis speed Y: ", -swerve.chassisSpeeds.vxMetersPerSecond);
+        telemetry.addData("position X: ", pose.getX());
+        telemetry.addData("position Y: ", pose.getY());
 
         telemetry.update();
 

@@ -49,7 +49,7 @@ public class ArmSubsystem extends SubsystemBase {
     public static double clawClosedPosition = 0;
     public static double clawOpenPosition = 0.75;
 
-    public static double clawProximitySensorVoltageThreshold = 1.05;
+    public static double clawProximitySensorVoltageThreshold = 1;
     public boolean rumble = false;
 
     double prevSlideTargetPos = 0;
@@ -241,7 +241,6 @@ public class ArmSubsystem extends SubsystemBase {
             telemetry.addData("isLeftLocked", isClawLeftLocked);
             telemetry.addData("isRightLocked", isClawRightLocked);
             telemetry.addData("AxonAngle", Math.toDegrees(armAngleRads));
-
             telemetry.addData("GamepadTargetMotorAngle", slideTargetPos);
             telemetry.addData("actualTargetPos", newPosition);
             telemetry.addData("currentAngle", currentMotorPos);

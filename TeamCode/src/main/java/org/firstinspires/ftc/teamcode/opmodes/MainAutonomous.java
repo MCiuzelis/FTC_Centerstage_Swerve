@@ -124,11 +124,12 @@ public class MainAutonomous extends CommandOpMode {
             arm.update(ArmSubsystem.CLAW_STATE.BOTH_CLOSED);
             while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
             StopProcessors();
-//            odPropProcessor.stopThread();
-//            if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
-//            else trSequence = trajectories.generateTrajectoryFarFromBackboard(odPropProcessor.getResults(), odPropProcessor.propColor);
+
             if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
             else trSequence = trajectories.buildTwoPixelFarAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+
+//            trSequence = trajectories.buildTwoPixelBackboardAuto(PropDetectionProcessor.POSITION.LEFT, PropDetectionProcessor.COLOR.RED);
+
             trajectorySequenceRunner.followTrajectorySequenceAsync(trSequence);
             hardware.startIMUThread(this);
             isOpModeStarted = true;

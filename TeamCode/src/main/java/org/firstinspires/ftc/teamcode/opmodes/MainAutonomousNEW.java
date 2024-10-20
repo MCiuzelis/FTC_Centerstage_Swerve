@@ -35,16 +35,16 @@ import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 public class MainAutonomousNEW extends CommandOpMode {
     public static double translationKv = 0.039;
-    public static double translationKa = 0.006;
-    public static double translationKp = 0.125;
+    public static double translationKa = 0;
+    public static double translationKp = 0;
     public static double translationKi = 0;
     public static double translationKd = 0;
-    public static double rotationKv = 0.305;
-    public static double rotationKa = 0.026;
-    public static double rotationKp = 1.2;
+    public static double rotationKv = 0.2;
+    public static double rotationKa = 0;
+    public static double rotationKp = 0;
     public static double rotationKi = 0;
-    public static double rotationKd = 0.003;
-    public static double lowPassGain = 0.7;
+    public static double rotationKd = 0;
+    public static double lowPassGain = 0.8;
 
     double odometryTickToInchRatio =  ((((1+(46d/17d))) * (1+(46d/17))) * 28) / ((33d / 62 * 52 / 18) * 2 * Math.PI * 1.5d);
 
@@ -57,8 +57,8 @@ public class MainAutonomousNEW extends CommandOpMode {
     double prevTime = 0;
     double prevHeading = 0;
     
-    LowPassFilter XVelocityFilter = new LowPassFilter(0.75);
-    LowPassFilter YVelocityFilter = new LowPassFilter(0.75);
+    LowPassFilter XVelocityFilter = new LowPassFilter(0.9);
+    LowPassFilter YVelocityFilter = new LowPassFilter(0.9);
 
 
     VisionPortal.Builder portalBuilder;
@@ -115,9 +115,9 @@ public class MainAutonomousNEW extends CommandOpMode {
         telemetry.addLine("ready for start");
         telemetry.update();
 
-        odPropProcessor.Init(telemetry);
-        BuildPortal();
-        odPropProcessor.start();
+//        odPropProcessor.Init(telemetry);
+//        BuildPortal();
+//        odPropProcessor.start();
     }
 
 
@@ -126,13 +126,13 @@ public class MainAutonomousNEW extends CommandOpMode {
     public void run() {
         if (!isOpModeStarted){
             arm.update(ArmSubsystem.CLAW_STATE.BOTH_CLOSED);
-            while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
-            StopProcessors();
-//            odPropProcessor.stopThread();
-//            if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
-//            else trSequence = trajectories.generateTrajectoryFarFromBackboard(odPropProcessor.getResults(), odPropProcessor.propColor);
-            if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
-            else trSequence = trajectories.buildTwoPixelFarAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+            //while (odPropProcessor.getResults() == PropDetectionProcessor.POSITION.UNKNOWN && !isStopRequested())idle();
+            //StopProcessors();
+
+            //if (autoStartingCloseToBackBoard) trSequence = trajectories.buildTwoPixelBackboardAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+            //else trSequence = trajectories.buildTwoPixelFarAuto(odPropProcessor.getResults(), odPropProcessor.propColor);
+
+            trSequence = trajectories.buildTwoPixelBackboardAuto(PropDetectionProcessor.POSITION.RIGHT, PropDetectionProcessor.COLOR.BLUE);
             trajectorySequenceRunner.followTrajectorySequenceAsync(trSequence);
             hardware.startIMUThread(this);
             isOpModeStarted = true;
@@ -141,18 +141,17 @@ public class MainAutonomousNEW extends CommandOpMode {
         hardware.clearBulkCache();
         swerve.updateModuleAngles();
         
-        swerve.updateChassisSpeedNew();
-        swerve.updateOdometryNew();
-        
         CommandScheduler.getInstance().run();
 
-        double imuAngle = hardware.imuAngle.getRadians();
-        Pose2d robotPosition = new Pose2d(
-                swerve.robotPosition.getX() / odometryTickToInchRatio,
-                swerve.robotPosition.getY() / odometryTickToInchRatio,
-                imuAngle);
+        swerve.updateChassisSpeedNew();
+        swerve.updateOdometryNew();
 
-        double robotVel =  getHeadingVelocity(imuAngle);
+        telemetry.addData("stupid odometry", swerve.robotPosition.getY());
+
+        double imuAngle = hardware.imuAngle.getRadians();
+        double robotVel = getHeadingVelocity(imuAngle);
+
+        Pose2d robotPosition = swerve.getRobotPosition();
         ChassisSpeeds robotVelocity = swerve.getChassisSpeedFromEncoders();
 
         Pose2d currentRobotVelocity = new Pose2d(

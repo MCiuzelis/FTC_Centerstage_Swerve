@@ -21,10 +21,10 @@ public class TrajectoriesNewNew {
     Telemetry telemetry;
     ArmSubsystem armSubsystem;
 
-    public static double angularVelocityConstraint = 3;
-    public static double angularAccelerationConstraint = 3;
-    public static double translationalVelocityConstraint = 6;
-    public static double translationalAccelerationConstraint = 6;
+    public static double angularVelocityConstraint = 4;
+    public static double angularAccelerationConstraint = 4;
+    public static double translationalVelocityConstraint = 7;
+    public static double translationalAccelerationConstraint = 7;
 
     Pose2d blueStartingPosition = new Pose2d();
     Pose2d redStartingPosition = new Pose2d();
@@ -63,28 +63,33 @@ public class TrajectoriesNewNew {
             switch (position) {
                 case RIGHT:
                     return new TrajectorySequenceBuilder(startingPosition, trajectoryVelocityConstraint, trajectoryAccelerationConstraint, angularVelocityConstraint, angularAccelerationConstraint)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
-                            .forward(10)
-                            .turn(Math.toRadians(-90))
-                            .forward(2.5)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
-                            .waitSeconds(1)
-                            .back(4)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
-                            .back(16)
-                            .strafeLeft(0.5)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.LEFT_OPENED)))
-                            .waitSeconds(0.2)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new InstantCommand(()->armSubsystem.offsetLift(-50))))
+                            .waitSeconds(5)
+                            .turn(Math.toRadians(90))
+                            .waitSeconds(5)
 
-                            .forward(2)
-                            .strafeRight(4)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.TRANSFER)))
-                            .strafeRight(7)
-                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
-                            .waitSeconds(200)
-                            .addTemporalMarker(() -> stopOpMode = true)
+
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.BOTH_CLOSED)))
+//                            .forward(10)
+//                            .turn(Math.toRadians(-90))
+//                            .forward(2.5)
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_OPEN)))
+//                            .waitSeconds(1)
+//                            .back(4)
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.LOW)))
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.RIGHT_CLOSED)))
+//                            .back(16)
+//                            .strafeLeft(0.5)
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetClawStateCommand(armSubsystem, ArmSubsystem.CLAW_STATE.LEFT_OPENED)))
+//                            .waitSeconds(0.2)
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new InstantCommand(()->armSubsystem.offsetLift(-50))))
+//
+//                            .forward(2)
+//                            .strafeRight(4)
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.TRANSFER)))
+//                            .strafeRight(7)
+//                            .addTemporalMarker(() -> CommandScheduler.getInstance().schedule(new SetArmToStateCommand(armSubsystem, SetArmToStateCommand.ArmState.PICKUP)))
+//                            .waitSeconds(200)
+//                            .addTemporalMarker(() -> stopOpMode = true)
                             .build();
 
                 case LEFT:

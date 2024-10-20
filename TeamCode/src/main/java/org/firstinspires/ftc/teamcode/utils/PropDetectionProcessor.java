@@ -54,7 +54,7 @@ public class PropDetectionProcessor extends Thread implements VisionProcessor {
                 .setModelFileName(FILE_NAME)
                 .setModelLabels(LABELS)
                 .build();
-        ODproc.setMinResultConfidence(0.85f);
+        ODproc.setMinResultConfidence(0.81f);
 
 
         //telemetryTfod();

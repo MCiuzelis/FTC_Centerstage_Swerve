@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import static com.arcrobotics.ftclib.util.MathUtils.clamp;
 
+import com.ThermalEquilibrium.homeostasis.Filters.FilterAlgorithms.LowPassFilter;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -148,9 +149,7 @@ public class SwerveModule implements Runnable{
 
         if (positionDelta < 0){
             positionDelta = -positionDelta;
-
-            if (angle > 0) angle -= Math.PI;
-            else angle += Math.PI;
+            angle -= Math.signum(angle) * Math.PI;
             while (Math.abs(angle) > 2d * Math.PI) angle -= Math.signum(angle) * 2d * Math.PI;
         }
 
@@ -166,10 +165,7 @@ public class SwerveModule implements Runnable{
 
         double angle = getAngleRads();
         Vector2d vector = new Vector2d(Math.sin(angle) * positionDelta, Math.cos(angle) * positionDelta);
-        double magnitude = vector. magnitude();
-
-        telemetry.addData("module angle: ", Math.toDegrees(angle));
-        telemetry.addData("module magnitude: ", magnitude);
+        double magnitude = vector.magnitude();
 
         return new SwerveModuleState(magnitude, new Rotation2d(vector.angle()));
     }
@@ -198,8 +194,6 @@ public class SwerveModule implements Runnable{
         Vector2d vector = new Vector2d(Math.sin(angle) * currentVelocity, Math.cos(angle) * currentVelocity);
         double magnitude = vector.magnitude();
 
-        telemetry.addData("module angle: ", Math.toDegrees(angle));
-        telemetry.addData("module velocity: ", magnitude);
         return new SwerveModuleState(magnitude, new Rotation2d(vector.angle()));
     }
 
